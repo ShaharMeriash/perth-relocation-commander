@@ -477,26 +477,14 @@ export default function App(){
     setRates(r=>({...r,fetching:true}));
     T("Fetching live rates…","inf");
     try{
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({
-          model:"claude-sonnet-4-20250514",
-          max_tokens:256,
-          tools:[{type:"web_search_20250305",name:"web_search"}],
-          messages:[{role:"user",content:"What are today\'s exact exchange rates? I need: 1 AUD in ILS, and 1 USD in ILS. Reply ONLY with a JSON object like: {\"AUD\":2.17,\"USD\":3.08} and nothing else. No explanation, no markdown, just the raw JSON."}]
-        })
-      });
+      const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=ILS,AUD");
       if(!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      const text = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("").trim();
-      const clean = text.replace(/```json|```/g,"").trim();
-      const parsed = JSON.parse(clean);
-      const AUD = +parseFloat(parsed.AUD).toFixed(4);
-      const USD = +parseFloat(parsed.USD).toFixed(4);
-      if(!AUD||!USD||isNaN(AUD)||isNaN(USD)) throw new Error("Bad values");
-      setRates({AUD,USD,upd:new Date().toLocaleDateString("en-AU"),fetching:false});
-      T(`Rates updated ✓  A$1 = ₪${AUD}`,"ok");
+      const usdToIls = +data.rates.ILS.toFixed(4);
+      const audToIls = +(( 1 / data.rates.AUD) * usdToIls).toFixed(4);
+      if(!usdToIls||!audToIls||isNaN(usdToIls)||isNaN(audToIls)) throw new Error("Bad values");
+      setRates({AUD:audToIls,USD:usdToIls,upd:new Date().toLocaleDateString("en-AU"),fetching:false});
+      T(`Rates updated ✓  A$1 = ₪${audToIls}  $1 = ₪${usdToIls}`,"ok");
     }catch(e){
       setRates(r=>({...r,fetching:false}));
       T("Could not fetch — using saved rates","err");
