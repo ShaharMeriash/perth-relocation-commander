@@ -315,7 +315,7 @@ const FLIGHT_LINKS = [
 ];
 
 // ─── DATA ─────────────────────────────────────────────────────────────────────
-const ARRIVAL = new Date("2026-06-26T00:00:00");
+const ARRIVAL = new Date("2026-07-20T00:00:00");
 const PHASES = [
   {name:"Month -6",label:"Oct–Dec 2025",date:new Date("2025-10-01")},
   {name:"Month -4",label:"Feb 2026",date:new Date("2026-02-01")},
@@ -325,45 +325,103 @@ const PHASES = [
   {name:"Month 0 Arrival",label:"Jun 2026",date:new Date("2026-06-01")},
 ];
 const JOURNEY_STEPS = [
-  {id:"j1",n:1,title:"Prepare Passports",desc:"All family passports valid 12+ months past arrival",aid:"a1"},
+  {id:"j1",n:1,title:"Prepare Passports",desc:"All family passports valid 2+ years past arrival",aid:"a2"},
   {id:"j2",n:2,title:"PhD Acceptance – UWA",desc:"Receive official UWA acceptance letter",aid:"a1"},
-  {id:"j3",n:3,title:"Apply for Australian Visa",desc:"Submit visa application (subclass 500/482)",aid:"a3"},
-  {id:"j4",n:4,title:"Apostille Documents",desc:"Notarise & apostille key civil documents",aid:"a9"},
-  {id:"j5",n:5,title:"Get OSHC Insurance",desc:"Purchase mandatory Overseas Student Health Cover",aid:"a4"},
-  {id:"j6",n:6,title:"Find Accommodation",desc:"Secure rental housing near UWA in Perth",aid:"a6"},
-  {id:"j7",n:7,title:"Book Flights",desc:"Purchase one-way TLV → PER for 4",aid:"a2"},
-  {id:"j8",n:8,title:"Enroll Kids in School",desc:"Complete Perth school enrollment",aid:"a5"},
-  {id:"j9",n:9,title:"Ship Belongings",desc:"Arrange international freight",aid:"a7"},
-  {id:"j10",n:10,title:"Arrive in Perth 🇦🇺",desc:"Land in Perth — begin new chapter!",aid:""},
+  {id:"j3",n:3,title:"Apostille Documents",desc:"Notarise & apostille key civil documents",aid:"a3"},
+  {id:"j4",n:4,title:"OSHC & Visa Application",desc:"Pay health insurance and submit subclass 500",aid:"a6"},
+  {id:"j5",n:5,title:"Medical Exams & Biometrics",desc:"Health checks required for visa",aid:"a7"},
+  {id:"j6",n:6,title:"Book Flights TLV → PER",desc:"Purchase one-way flights for family of 4",aid:"a9"},
+  {id:"j7",n:7,title:"Find Accommodation",desc:"Secure rental housing near UWA in Perth",aid:"a13"},
+  {id:"j8",n:8,title:"Enrol Kids in School",desc:"TIWA placement + fee waiver",aid:"a10"},
+  {id:"j9",n:9,title:"Setup AU Bank & Wise",desc:"Transfer settlement funds to AUD",aid:"a16"},
+  {id:"j10",n:10,title:"PhD Starts at UWA 🎓",desc:"July 20, 2026 — begin new chapter!",aid:""},
 ];
 
 const SEED_ACTIONS = [
-  {id:"a1",title:"Getting accepted to PhD by UWA",desc:"UWA PhD acceptance — critical gate for entire relocation",type:"Visa Step",owner:"Raz",priority:"High",status:"in progress",phase:"Month -6",pdate:"",ddate:"2026-03-01",cost:"",cur:"ILS",vendor:"University of Western Australia",comments:"",subs:[{id:"s1",t:"Submit application",done:true},{id:"s2",t:"Receive confirmation email",done:false}]},
-  {id:"a2",title:"Book Flight TLV → PER",desc:"One-way flights for family of 4",type:"Task",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -3",pdate:"2026-06-26",ddate:"2026-04-01",cost:"",cur:"USD",vendor:"",comments:"",subs:[]},
-  {id:"a3",title:"Apply for Australian Visa (500/482)",desc:"Visa application for Raz & Shahar",type:"Visa Step",owner:"Raz",priority:"High",status:"tbd",phase:"Month -4",pdate:"",ddate:"2026-02-01",cost:"7000",cur:"ILS",vendor:"",comments:"",subs:[]},
-  {id:"a4",title:"Get OSHC Insurance",desc:"Overseas Student Health Cover — mandatory for visa",type:"Expense",owner:"Raz",priority:"High",status:"tbd",phase:"Month -4",pdate:"",ddate:"2026-03-15",cost:"3200",cur:"AUD",vendor:"Medibank / Bupa",comments:"",subs:[]},
-  {id:"a5",title:"Enroll kids in Perth school",desc:"Find and enroll near UWA campus",type:"School",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -2",pdate:"",ddate:"2026-05-01",cost:"",cur:"AUD",vendor:"",comments:"",subs:[]},
-  {id:"a6",title:"Find rental accommodation in Perth",desc:"Secure housing near UWA — Nedlands / Subiaco",type:"Housing",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-04-15",cost:"3500",cur:"AUD",vendor:"",comments:"",subs:[]},
-  {id:"a7",title:"Ship personal belongings",desc:"Arrange sea or air freight container",type:"Task",owner:"Raz",priority:"Medium",status:"tbd",phase:"Month -1",pdate:"",ddate:"2026-05-20",cost:"8000",cur:"USD",vendor:"",comments:"",subs:[]},
-  {id:"a8",title:"Open Australian bank account",desc:"Open AUD account before arrival if possible",type:"Admin",owner:"Raz",priority:"Medium",status:"tbd",phase:"Month -2",pdate:"",ddate:"2026-05-01",cost:"",cur:"AUD",vendor:"Commonwealth Bank / ANZ",comments:"",subs:[]},
-  {id:"a9",title:"Apostille documents",desc:"Marriage cert, birth certs — apostille stamps",type:"Document",owner:"Shahar",priority:"Medium",status:"in progress",phase:"Month -6",pdate:"",ddate:"2026-02-01",cost:"1200",cur:"ILS",vendor:"Notary",comments:"",subs:[]},
-  {id:"a10",title:"Buy furniture for Perth apartment",desc:"IKEA beds, kitchen items, fridge, washer",type:"Purchase",owner:"Shahar",priority:"Low",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-10",cost:"5000",cur:"AUD",vendor:"IKEA / Kmart",comments:"",subs:[]},
+  // ── CRITICAL GATE ──
+  {id:"a1",title:"Getting accepted to PhD by UWA",desc:"PhD acceptance is the foundational milestone that enables all other relocation activities.",type:"Education",owner:"Shahar",priority:"High",status:"in progress",phase:"Month -6",pdate:"",ddate:"2026-03-01",cost:"",cur:"ILS",vendor:"University of Western Australia",comments:"",subs:[{id:"s1",t:"Submit application",done:true},{id:"s2",t:"Receive confirmation email",done:false}]},
+  // ── DOCUMENTS ──
+  {id:"a2",title:"Passport Renewal",desc:"Ensure all passports have 2+ years validity past arrival date.",type:"Document",owner:"Raz",priority:"High",status:"tbd",phase:"Month -6",pdate:"",ddate:"2026-01-15",cost:"",cur:"ILS",vendor:"",comments:"",subs:[]},
+  {id:"a3",title:"Apostille Documents",desc:"Get marriage & birth certificates translated and apostilled.",type:"Document",owner:"Shahar",priority:"Medium",status:"in progress",phase:"Month -6",pdate:"",ddate:"2026-02-01",cost:"1900",cur:"ILS",vendor:"Notary / Israeli Foreign Affairs",comments:"Includes ILS 1500 translations + ILS 400 apostille fee",subs:[]},
+  {id:"a4",title:"Request Entry/Exit Records (10 years)",desc:"Get 'Ishur Knisot VeYitziot' from Population Authority for visa GTE statement.",type:"Document",owner:"Raz",priority:"High",status:"tbd",phase:"Month -6",pdate:"",ddate:"2026-02-01",cost:"",cur:"ILS",vendor:"Israeli Population Authority",comments:"",subs:[]},
+  {id:"a5",title:"Confirm 100-Point ID Check",desc:"Gather Passport, AU Bank Statement, Rental Lease for local ID score.",type:"Document",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-25",cost:"",cur:"AUD",vendor:"",comments:"",subs:[]},
+  // ── VISA ──
+  {id:"a6",title:"OSHC & Visa Application",desc:"Pay health insurance and submit subclass 500 student visa.",type:"Visa Step",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -4",pdate:"",ddate:"2026-03-01",cost:"40590",cur:"AUD",vendor:"Home Affairs AU / Medibank",comments:"OSHC Family 4yr: A$37,000 + Student visa: A$1,600 + Spouse: A$1,190 + Kids x2: A$800",subs:[]},
+  {id:"a7",title:"Medical Exams & Biometrics",desc:"Health examinations required for visa application.",type:"Visa Step",owner:"Both",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-04-01",cost:"2400",cur:"ILS",vendor:"Assuta / IOM Israel",comments:"",subs:[]},
+  {id:"a8",title:"Verify UWA Medibank Waiver",desc:"Confirm UWA's deal with Medibank waives the 12-month pregnancy/pre-existing waiting period.",type:"Visa Step",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month -4",pdate:"",ddate:"2026-03-01",cost:"",cur:"AUD",vendor:"Medibank",comments:"",subs:[]},
+  // ── TRAVEL ──
+  {id:"a9",title:"Book Flight TLV → PER",desc:"One-way flights for family of 4. This date anchors all time-sensitive tasks.",type:"Travel",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-04-01",cost:"18500",cur:"ILS",vendor:"Airline",comments:"",subs:[]},
+  // ── EDUCATION ──
+  {id:"a10",title:"Enrol Kids in School (TIWA)",desc:"Contact TIWA for placement confirmation. Submit PhD CoE to waive fees.",type:"School",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-05-01",cost:"",cur:"AUD",vendor:"TIWA / WA Dept of Education",comments:"",subs:[]},
+  {id:"a11",title:"Apply for TIWA Fee Waiver",desc:"Submit PhD CoE to WA Education to waive $15k/year school fees per child.",type:"School",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -2",pdate:"",ddate:"2026-05-01",cost:"",cur:"AUD",vendor:"WA Department of Education",comments:"Critical — saves ~$30k/year",subs:[]},
+  {id:"a12",title:"Apply for USI (Unique Student ID)",desc:"Mandatory for all students in Australia. Do online after landing.",type:"Education",owner:"Shahar",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-20",cost:"",cur:"AUD",vendor:"Australian Government",comments:"",subs:[]},
+  // ── HOUSING ──
+  {id:"a13",title:"Find Rental Accommodation in Perth",desc:"Secure housing near UWA — Nedlands / Subiaco area.",type:"Housing",owner:"Both",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-04-15",cost:"",cur:"AUD",vendor:"",comments:"",subs:[]},
+  {id:"a14",title:"Temporary Airbnb (14 days)",desc:"Short-term accommodation on arrival while finding permanent rental.",type:"Housing",owner:"Both",priority:"High",status:"tbd",phase:"Month -2",pdate:"",ddate:"2026-05-01",cost:"8500",cur:"ILS",vendor:"Airbnb",comments:"",subs:[]},
+  {id:"a15",title:"Rental Inspections",desc:"Attend at least 5 viewings in first week after arrival.",type:"Housing",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-27",cost:"5100",cur:"AUD",vendor:"Real Estate Agent",comments:"Bond 4wk: A$3,400 + 2wk upfront: A$1,700",subs:[]},
+  // ── FINANCE ──
+  {id:"a16",title:"Setup Wise / AU Bank Account",desc:"Transfer initial settlement funds to AUD before arrival.",type:"Admin",owner:"Raz",priority:"High",status:"tbd",phase:"Month -1",pdate:"",ddate:"2026-06-01",cost:"",cur:"AUD",vendor:"Commonwealth Bank / ANZ / Wise",comments:"",subs:[]},
+  {id:"a17",title:"Apply for TFN",desc:"Tax File Number application for both parents.",type:"Admin",owner:"Both",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-25",cost:"",cur:"AUD",vendor:"ATO",comments:"",subs:[]},
+  {id:"a18",title:"Setup MyGov & MyGovID",desc:"Link Visa, ATO, and Health records for digital management.",type:"Admin",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-25",cost:"",cur:"AUD",vendor:"Australian Government",comments:"",subs:[]},
+  // ── VEHICLE ──
+  {id:"a19",title:"Buy Family Car",desc:"Visit Osborne Park/Canning Vale for SUV. Toyota RAV4 or similar (2018-20).",type:"Purchase",owner:"Raz",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-31",cost:"23400",cur:"AUD",vendor:"Private/Dealer",comments:"Car: A$22,000 + Rego & Insurance: A$1,400",subs:[]},
+  {id:"a20",title:"WA Driver's License Conversion",desc:"Book driving instructor + theory test + practical driving assessment (PDA). Mandatory for Israeli license holders.",type:"Admin",owner:"Raz",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-15",cost:"235",cur:"AUD",vendor:"Transport WA",comments:"Instructor lessons + Theory: A$25 + PDA: A$150 + License: A$60",subs:[]},
+  // ── MEDICAL ──
+  {id:"a21",title:"Register with Medicare",desc:"Check if any temporary Medicare access applies. Verify OSHC card covers gaps.",type:"Medical",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-31",cost:"100",cur:"AUD",vendor:"St John WA / Medicare",comments:"Ambulance cover extra: A$100 (OSHC doesn't cover all scenarios in WA)",subs:[]},
+  {id:"a22",title:"Update AIR (Immunisation Register)",desc:"Translate kids' Pink Book (Pinkas Chissunim) and give to GP to upload to Medicare/AIR.",type:"Medical",owner:"Shahar",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-01",cost:"",cur:"AUD",vendor:"Local GP",comments:"",subs:[]},
+  // ── OTHER ──
+  {id:"a23",title:"Join 'Israelis in Perth' FB Group",desc:"Local networking for 'Buy Nothing' furniture and community advice.",type:"Admin",owner:"Both",priority:"Low",status:"tbd",phase:"Month -2",pdate:"",ddate:"",cost:"",cur:"AUD",vendor:"Facebook",comments:"",subs:[]},
+  {id:"a24",title:"Working with Children Check (WWCC)",desc:"Both parents need this for volunteering at kids' schools.",type:"Admin",owner:"Both",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-01",cost:"11",cur:"AUD",vendor:"WA Government",comments:"",subs:[]},
+  {id:"a25",title:"Terminate Israeli Contracts",desc:"Cancel Arnona, Electricity, Water, Internet before departure.",type:"Admin",owner:"Raz",priority:"Medium",status:"tbd",phase:"Month -1",pdate:"",ddate:"2026-06-15",cost:"",cur:"ILS",vendor:"",comments:"",subs:[]},
+  {id:"a26",title:"Ship Personal Belongings",desc:"Arrange sea or air freight container for personal items.",type:"Task",owner:"Raz",priority:"Medium",status:"tbd",phase:"Month -1",pdate:"",ddate:"2026-05-20",cost:"8000",cur:"USD",vendor:"",comments:"",subs:[]},
+  {id:"a27",title:"Utility Connection Fees",desc:"Connect electricity, gas, internet at new Perth rental.",type:"Admin",owner:"Both",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-31",cost:"300",cur:"AUD",vendor:"Synergy / Alinta",comments:"",subs:[]},
+  {id:"a28",title:"Initial Grocery Stockup",desc:"First big grocery shop after arrival.",type:"Purchase",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-22",cost:"700",cur:"AUD",vendor:"Coles / Woolworths",comments:"",subs:[]},
+  {id:"a29",title:"UWA Student Services Fee (SSAF)",desc:"Mandatory student services fee at UWA.",type:"Education",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-20",cost:"351",cur:"AUD",vendor:"UWA",comments:"",subs:[]},
+  {id:"a30",title:"School Admin Fees + Uniforms",desc:"Admin fees x2 children + winter/summer uniform sets (~$400 per child).",type:"School",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-01",cost:"1400",cur:"AUD",vendor:"WA Dept of Education / School Shop",comments:"Admin: A$600 + Uniforms & Books: A$800",subs:[]},
+  {id:"a31",title:"SmartRider & Interim Car Rental",desc:"Public transport cards (bus/train/ferry) + 7-day rental car until SUV purchase.",type:"Travel",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-22",cost:"700",cur:"AUD",vendor:"Transperth / Hertz / Sixt",comments:"SmartRider family load: A$100 + Car rental 7 days: A$600",subs:[]},
 ];
 const SEED_DOCS = [
-  {id:"d1",type:"Passport – Raz",exp:"2030-05-12",aid:"",notes:""},
-  {id:"d2",type:"Passport – Shahar",exp:"2029-11-08",aid:"",notes:""},
-  {id:"d3",type:"Passport – Child 1",exp:"2028-03-15",aid:"",notes:""},
-  {id:"d4",type:"Passport – Child 2",exp:"2027-09-22",aid:"",notes:""},
-  {id:"d5",type:"Marriage Certificate (Apostilled)",exp:"",aid:"a9",notes:""},
-  {id:"d6",type:"Birth Certificates (x2)",exp:"",aid:"a9",notes:""},
-  {id:"d7",type:"OSHC Insurance Certificate",exp:"",aid:"a4",notes:""},
+  {id:"d1",type:"Passport – Raz",exp:"2030-05-12",aid:"a2",notes:"Renew if <2yr validity past Jul 2026"},
+  {id:"d2",type:"Passport – Shahar",exp:"2029-11-08",aid:"a2",notes:""},
+  {id:"d3",type:"Passport – Child 1",exp:"2028-03-15",aid:"a2",notes:""},
+  {id:"d4",type:"Passport – Child 2",exp:"2027-09-22",aid:"a2",notes:""},
+  {id:"d5",type:"Marriage Certificate (Apostilled)",exp:"",aid:"a3",notes:""},
+  {id:"d6",type:"Birth Certificates x2 (Apostilled)",exp:"",aid:"a3",notes:""},
+  {id:"d7",type:"OSHC Insurance Certificate",exp:"",aid:"a6",notes:""},
+  {id:"d8",type:"Student Visa – Shahar (500)",exp:"",aid:"a6",notes:""},
+  {id:"d9",type:"Dependent Visa – Raz",exp:"",aid:"a6",notes:""},
+  {id:"d10",type:"Dependent Visas – Children x2",exp:"",aid:"a6",notes:""},
+  {id:"d11",type:"Entry/Exit Records (10 years)",exp:"",aid:"a4",notes:"From Israeli Population Authority"},
+  {id:"d12",type:"UWA Acceptance / CoE Letter",exp:"",aid:"a1",notes:"Required for TIWA fee waiver & visa"},
+  {id:"d13",type:"Hebrew–English Translations",exp:"",aid:"a3",notes:"NAATI certified translator"},
 ];
 const SEED_SHOP = [
-  {id:"sh1",name:"Fridge",store:"Harvey Norman",cost:1200,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"650L+ family size"},
-  {id:"sh2",name:"Washing Machine",store:"Harvey Norman",cost:900,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
-  {id:"sh3",name:"Family SUV",store:"CarSales / dealer",cost:28000,owner:"Raz",phase:"Month 0 Arrival",done:false,notes:"Toyota RAV4 or similar"},
-  {id:"sh4",name:"IKEA Beds (x4)",store:"IKEA Perth",cost:1800,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"2 adults + 2 kids"},
-  {id:"sh5",name:"Kmart Kitchenware",store:"Kmart",cost:400,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"Pots, pans, utensils"},
+  // Appliances
+  {id:"sh1",name:"Fridge (400L+ Used)",store:"Facebook Marketplace",cost:450,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"Buy secondhand to save cost"},
+  {id:"sh2",name:"Washing Machine (Front Load)",store:"Facebook Marketplace",cost:350,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh3",name:"Microwave & Kettle",store:"Kmart",cost:120,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh4",name:"Portable Reverse Cycle Heaters x2",store:"Kmart",cost:200,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"Perth rentals are cold in June — essential for kids' rooms"},
+  {id:"sh5",name:"Laundry Airer (Clothes Horse)",store:"IKEA",cost:30,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"Dryers are expensive to run in AU"},
+  // Furniture
+  {id:"sh6",name:"Queen Bed & Mattress",store:"IKEA",cost:850,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh7",name:"Kids Single Beds x2",store:"IKEA",cost:600,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh8",name:"Sofa (3 Seater)",store:"IKEA / Kmart",cost:650,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh9",name:"Dining Table + 4 Chairs",store:"IKEA",cost:300,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh10",name:"Study Desk & Chair",store:"IKEA",cost:250,owner:"Raz",phase:"Month 0 Arrival",done:false,notes:"For PhD study"},
+  {id:"sh11",name:"Camping Chairs (Initial Seating)",store:"BCF / Kmart",cost:40,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"Cheap seating while waiting for sofa delivery"},
+  // Bedding
+  {id:"sh12",name:"Bedding & Towels",store:"Kmart",cost:300,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh13",name:"Electric Blankets",store:"Target / Kmart",cost:100,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"June is coldest month — rentals lack central heating"},
+  // Electronics
+  {id:"sh14",name:"55-inch Smart TV",store:"JB Hi-Fi",cost:450,owner:"Raz",phase:"Month 0 Arrival",done:false,notes:""},
+  {id:"sh15",name:"AU Power Board & Adapters",store:"Kmart",cost:40,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"To use Israeli laptops/chargers"},
+  // Kitchen
+  {id:"sh16",name:"Kitchen Starter Kit",store:"Kmart",cost:200,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"Pots, pans, utensils"},
+  // Vehicle
+  {id:"sh17",name:"Child Car Seats x2",store:"Baby Bunting / Marketplace",cost:500,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"Must meet AU safety standards — Israeli seats are often illegal here"},
+  // Other
+  {id:"sh18",name:"Raincoats & Wellies (Family)",store:"Kmart",cost:150,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"June is peak rainy season in Perth"},
+  {id:"sh19",name:"Sunscreen & Hats (Bulk)",store:"Chemist Warehouse",cost:50,owner:"Shahar",phase:"Month 0 Arrival",done:false,notes:"UV in WA is extreme even in winter"},
 ];
 
 // ─── HELPERS ──────────────────────────────────────────────────────────────────
@@ -477,11 +535,18 @@ export default function App(){
     setRates(r=>({...r,fetching:true}));
     T("Fetching live rates…","inf");
     try{
-      const res = await fetch("https://api.frankfurter.app/latest?from=USD&to=ILS,AUD");
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      const usdToIls = +data.rates.ILS.toFixed(4);
-      const audToIls = +(( 1 / data.rates.AUD) * usdToIls).toFixed(4);
+      // exchangerate-api.com — free, no key needed for basic endpoint
+      const [ilsRes, audRes] = await Promise.all([
+        fetch("https://open.er-api.com/v6/latest/ILS"),
+        fetch("https://open.er-api.com/v6/latest/AUD")
+      ]);
+      if(!ilsRes.ok||!audRes.ok) throw new Error("API error");
+      const ilsData = await ilsRes.json();
+      const audData = await audRes.json();
+      // 1 USD in ILS = how many ILS per 1 USD
+      const usdToIls = +parseFloat(ilsData.rates.USD ? 1/ilsData.rates.USD : 0).toFixed(4);
+      // 1 AUD in ILS
+      const audToIls = +parseFloat(audData.rates.ILS).toFixed(4);
       if(!usdToIls||!audToIls||isNaN(usdToIls)||isNaN(audToIls)) throw new Error("Bad values");
       setRates({AUD:audToIls,USD:usdToIls,upd:new Date().toLocaleDateString("en-AU"),fetching:false});
       T(`Rates updated ✓  A$1 = ₪${audToIls}  $1 = ₪${usdToIls}`,"ok");
@@ -588,7 +653,7 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
     <>
       <div className="page-header">
         <div className="page-title">Today 🏠</div>
-        <div className="page-sub">Tel Aviv → Perth · June 26, 2026</div>
+        <div className="page-sub">Tel Aviv → Perth · PhD starts July 20, 2026</div>
       </div>
       <div className="page-body">
         {/* PhD Gate */}
@@ -619,7 +684,7 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
                 </button>
                 <button className="btn btn-s btn-sm" onClick={()=>onEdit(urgent)}>Edit</button>
               </div>
-              {urgent.id==="a2"&&<FlightPanel/>}
+              {urgent.id==="a9"&&<FlightPanel/>}
             </div>
           ) : (
             <div className="urgent-card">
@@ -629,8 +694,8 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
             </div>
           )}
           <div className="countdown">
-            <div className="cd-label">🛫 Countdown to Perth</div>
-            <div className="cd-title">{phdDone?"Days Until Arrival":"Activate after PhD ⏳"}</div>
+            <div className="cd-label">🎓 Countdown to PhD Start</div>
+            <div className="cd-title">{phdDone?"Days Until July 20":"Activate after PhD ⏳"}</div>
             {phdDone ? (
               <div className="cd-units">
                 {[["D",tick.D],["H",tick.H],["M",tick.M],["S",tick.S]].map(([l,v])=>(
@@ -762,7 +827,7 @@ function AllActionsTab({actions,fSt,setFSt,fOw,setFOw,fPr,setFPr,fTy,setFTy,q,se
         </select>
         <select className="fsel" value={fOw} onChange={e=>setFOw(e.target.value)}>
           <option value="all">All Owners</option>
-          {["Raz","Shahar","Kids","External"].map(o=><option key={o} value={o}>{o}</option>)}
+          {["Raz","Shahar","Both","Kids","External"].map(o=><option key={o} value={o}>{o}</option>)}
         </select>
         <select className="fsel" value={fPr} onChange={e=>setFPr(e.target.value)}>
           <option value="all">All Priority</option>
@@ -788,7 +853,7 @@ function AllActionsTab({actions,fSt,setFSt,fOw,setFOw,fPr,setFPr,fTy,setFTy,q,se
 }
 
 function FullActionCard({a,onEdit,onDelete,cycleStatus}){
-  const isFlight = a.id==="a2";
+  const isFlight = a.id==="a9";
   const sd = a.subs?.filter(s=>s.done).length||0;
   const st = a.subs?.length||0;
   return(
@@ -1169,7 +1234,7 @@ function ActionModal({a,onSave,onClose}){
     if(f.subs?.some(s=>s.done)&&f.status==="tbd") sf("status","in progress");
   },[f.subs]);
 
-  const isFlight=f.id==="a2"||f.title.toLowerCase().includes("flight");
+  const isFlight=f.id==="a9"||f.title.toLowerCase().includes("flight");
 
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -1185,7 +1250,7 @@ function ActionModal({a,onSave,onClose}){
           <div className="fcol">
             <div className="flabel">Owner</div>
             <select className="fselect" value={f.owner} onChange={e=>sf("owner",e.target.value)}>
-              {["Raz","Shahar","Kids","External"].map(o=><option key={o}>{o}</option>)}
+              {["Raz","Shahar","Both","Kids","External"].map(o=><option key={o}>{o}</option>)}
             </select>
           </div>
           <div className="fcol">
