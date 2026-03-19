@@ -520,7 +520,7 @@ function totalCostILS(a, rates){
   const c2 = conv(a.cost2, a.cur2||"AUD", rates, "ILS");
   return c1 + c2;
 }
-return s==="in progress"?"tprog":s==="done"?"tdone":s==="irrelevant"?"tirr":"tbd";}
+function stCls(s){return s==="in progress"?"tprog":s==="done"?"tdone":s==="irrelevant"?"tirr":"tbd";}
 function prCls(p){return p==="High"?"tr":p==="Medium"?"tam":"t3";}
 function ownerInit(o){return(o||"?")[0];}
 function ownerCls(o){return "ava-"+(o||"E")[0];}
