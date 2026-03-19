@@ -533,9 +533,12 @@ function fmt(v,cur){
   return sym+Math.round(v).toLocaleString();
 }
 function totalCostILS(a, rates){
-  const c1 = conv(a.cost, a.cur, rates, "ILS");
-  const c2 = conv(a.cost2, a.cur2||"AUD", rates, "ILS");
-  return c1 + c2;
+  // If cost2 is in ILS, use it directly (most accurate)
+  if(a.cost2&&+a.cost2>0&&(a.cur2||"AUD")==="ILS") return +a.cost2;
+  // If cost1 is in ILS, use it directly
+  if(a.cost&&+a.cost>0&&a.cur==="ILS") return +a.cost;
+  // Otherwise convert cost1 to ILS (ignore cost2 — same transaction different currency)
+  return conv(a.cost, a.cur, rates, "ILS");
 }
 function stCls(s){return s==="in progress"?"tprog":s==="done"?"tdone":s==="irrelevant"?"tirr":"tbd";}
 function prCls(p){return p==="High"?"tr":p==="Medium"?"tam":"t3";}
@@ -1501,7 +1504,7 @@ function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
                 <input className="finput" value={f.vendor} onChange={e=>sf("vendor",e.target.value)}/>
               </div>
               <div className="fcol span2">
-                <div className="flabel">Cost (two currencies → totals in ILS)</div>
+                <div className="flabel">Cost — same amount, two currencies (ILS used for totals)</div>
                 <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto",gap:6,alignItems:"center"}}>
                   <input type="number" className="finput" value={f.cost} onChange={e=>sf("cost",e.target.value)} placeholder="0"/>
                   <select className="fselect" value={f.cur} onChange={e=>sf("cur",e.target.value)} style={{width:72}}>
