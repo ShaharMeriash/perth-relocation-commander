@@ -408,48 +408,65 @@ const JOURNEY_STEPS = [
   {id:"j10",n:10,title:"PhD Starts at UWA 🎓",desc:"July 20, 2026 — begin new chapter!",aid:""},
 ];
 
-const SEED_ACTIONS = [
-  // ── CRITICAL GATE ──
-  {id:"a1",title:"Getting accepted to PhD by UWA",desc:"PhD acceptance is the foundational milestone that enables all other relocation activities.",type:"Education",owner:"Shahar",priority:"High",status:"in progress",phase:"Month -6",pdate:"",ddate:"2026-03-01",cost:"",cur:"ILS",vendor:"University of Western Australia",comments:"",subs:[{id:"s1",t:"Submit application",done:true},{id:"s2",t:"Receive confirmation email",done:false}]},
-  // ── DOCUMENTS ──
-  {id:"a2",title:"Passport Renewal",desc:"Ensure all passports have 2+ years validity past arrival date.",type:"Document",owner:"Raz",priority:"High",status:"tbd",phase:"Month -6",pdate:"",ddate:"2026-01-15",cost:"",cur:"ILS",vendor:"",comments:"",subs:[]},
-  {id:"a3",title:"Apostille Documents",desc:"Get marriage & birth certificates translated and apostilled.",type:"Document",owner:"Shahar",priority:"Medium",status:"in progress",phase:"Month -6",pdate:"",ddate:"2026-02-01",cost:"1900",cur:"ILS",vendor:"Notary / Israeli Foreign Affairs",comments:"Includes ILS 1500 translations + ILS 400 apostille fee",subs:[]},
-  {id:"a4",title:"Request Entry/Exit Records (10 years)",desc:"Get 'Ishur Knisot VeYitziot' from Population Authority for visa GTE statement.",type:"Document",owner:"Raz",priority:"High",status:"tbd",phase:"Month -6",pdate:"",ddate:"2026-02-01",cost:"",cur:"ILS",vendor:"Israeli Population Authority",comments:"",subs:[]},
-  {id:"a5",title:"Confirm 100-Point ID Check",desc:"Gather Passport, AU Bank Statement, Rental Lease for local ID score.",type:"Document",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-25",cost:"",cur:"AUD",vendor:"",comments:"",subs:[]},
-  // ── VISA ──
-  {id:"a6",title:"OSHC & Visa Application",desc:"Pay health insurance and submit subclass 500 student visa.",type:"Visa Step",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -4",pdate:"",ddate:"2026-03-01",cost:"40590",cur:"AUD",vendor:"Home Affairs AU / Medibank",comments:"OSHC Family 4yr: A$37,000 + Student visa: A$1,600 + Spouse: A$1,190 + Kids x2: A$800",subs:[]},
-  {id:"a7",title:"Medical Exams & Biometrics",desc:"Health examinations required for visa application.",type:"Visa Step",owner:"Both",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-04-01",cost:"2400",cur:"ILS",vendor:"Assuta / IOM Israel",comments:"",subs:[]},
-  {id:"a8",title:"Verify UWA Medibank Waiver",desc:"Confirm UWA's deal with Medibank waives the 12-month pregnancy/pre-existing waiting period.",type:"Visa Step",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month -4",pdate:"",ddate:"2026-03-01",cost:"",cur:"AUD",vendor:"Medibank",comments:"",subs:[]},
-  // ── TRAVEL ──
-  {id:"a9",title:"Book Flight TLV → PER",desc:"One-way flights for family of 4. This date anchors all time-sensitive tasks.",type:"Travel",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-04-01",cost:"18500",cur:"ILS",vendor:"Airline",comments:"",subs:[]},
-  // ── EDUCATION ──
-  {id:"a10",title:"Enrol Kids in School (TIWA)",desc:"Contact TIWA for placement confirmation. Submit PhD CoE to waive fees.",type:"School",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-05-01",cost:"",cur:"AUD",vendor:"TIWA / WA Dept of Education",comments:"",subs:[]},
-  {id:"a11",title:"Apply for TIWA Fee Waiver",desc:"Submit PhD CoE to WA Education to waive $15k/year school fees per child.",type:"School",owner:"Shahar",priority:"High",status:"tbd",phase:"Month -2",pdate:"",ddate:"2026-05-01",cost:"",cur:"AUD",vendor:"WA Department of Education",comments:"Critical — saves ~$30k/year",subs:[]},
-  {id:"a12",title:"Apply for USI (Unique Student ID)",desc:"Mandatory for all students in Australia. Do online after landing.",type:"Education",owner:"Shahar",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-20",cost:"",cur:"AUD",vendor:"Australian Government",comments:"",subs:[]},
-  // ── HOUSING ──
-  {id:"a13",title:"Find Rental Accommodation in Perth",desc:"Secure housing near UWA — Nedlands / Subiaco area.",type:"Housing",owner:"Both",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"2026-04-15",cost:"",cur:"AUD",vendor:"",comments:"",subs:[]},
-  {id:"a14",title:"Temporary Airbnb (14 days)",desc:"Short-term accommodation on arrival while finding permanent rental.",type:"Housing",owner:"Both",priority:"High",status:"tbd",phase:"Month -2",pdate:"",ddate:"2026-05-01",cost:"8500",cur:"ILS",vendor:"Airbnb",comments:"",subs:[]},
-  {id:"a15",title:"Rental Inspections",desc:"Attend at least 5 viewings in first week after arrival.",type:"Housing",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-27",cost:"5100",cur:"AUD",vendor:"Real Estate Agent",comments:"Bond 4wk: A$3,400 + 2wk upfront: A$1,700",subs:[]},
-  // ── FINANCE ──
-  {id:"a16",title:"Setup Wise / AU Bank Account",desc:"Transfer initial settlement funds to AUD before arrival.",type:"Admin",owner:"Raz",priority:"High",status:"tbd",phase:"Month -1",pdate:"",ddate:"2026-06-01",cost:"",cur:"AUD",vendor:"Commonwealth Bank / ANZ / Wise",comments:"",subs:[]},
-  {id:"a17",title:"Apply for TFN",desc:"Tax File Number application for both parents.",type:"Admin",owner:"Both",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-25",cost:"",cur:"AUD",vendor:"ATO",comments:"",subs:[]},
-  {id:"a18",title:"Setup MyGov & MyGovID",desc:"Link Visa, ATO, and Health records for digital management.",type:"Admin",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-25",cost:"",cur:"AUD",vendor:"Australian Government",comments:"",subs:[]},
-  // ── VEHICLE ──
-  {id:"a19",title:"Buy Family Car",desc:"Visit Osborne Park/Canning Vale for SUV. Toyota RAV4 or similar (2018-20).",type:"Purchase",owner:"Raz",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-31",cost:"23400",cur:"AUD",vendor:"Private/Dealer",comments:"Car: A$22,000 + Rego & Insurance: A$1,400",subs:[]},
-  {id:"a20",title:"WA Driver's License Conversion",desc:"Book driving instructor + theory test + practical driving assessment (PDA). Mandatory for Israeli license holders.",type:"Admin",owner:"Raz",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-15",cost:"235",cur:"AUD",vendor:"Transport WA",comments:"Instructor lessons + Theory: A$25 + PDA: A$150 + License: A$60",subs:[]},
-  // ── MEDICAL ──
-  {id:"a21",title:"Register with Medicare",desc:"Check if any temporary Medicare access applies. Verify OSHC card covers gaps.",type:"Medical",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-31",cost:"100",cur:"AUD",vendor:"St John WA / Medicare",comments:"Ambulance cover extra: A$100 (OSHC doesn't cover all scenarios in WA)",subs:[]},
-  {id:"a22",title:"Update AIR (Immunisation Register)",desc:"Translate kids' Pink Book (Pinkas Chissunim) and give to GP to upload to Medicare/AIR.",type:"Medical",owner:"Shahar",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-01",cost:"",cur:"AUD",vendor:"Local GP",comments:"",subs:[]},
-  // ── OTHER ──
-  {id:"a23",title:"Join 'Israelis in Perth' FB Group",desc:"Local networking for 'Buy Nothing' furniture and community advice.",type:"Admin",owner:"Both",priority:"Low",status:"tbd",phase:"Month -2",pdate:"",ddate:"",cost:"",cur:"AUD",vendor:"Facebook",comments:"",subs:[]},
-  {id:"a24",title:"Working with Children Check (WWCC)",desc:"Both parents need this for volunteering at kids' schools.",type:"Admin",owner:"Both",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-01",cost:"11",cur:"AUD",vendor:"WA Government",comments:"",subs:[]},
-  {id:"a25",title:"Terminate Israeli Contracts",desc:"Cancel Arnona, Electricity, Water, Internet before departure.",type:"Admin",owner:"Raz",priority:"Medium",status:"tbd",phase:"Month -1",pdate:"",ddate:"2026-06-15",cost:"",cur:"ILS",vendor:"",comments:"",subs:[]},
-  {id:"a26",title:"Ship Personal Belongings",desc:"Arrange sea or air freight container for personal items.",type:"Task",owner:"Raz",priority:"Medium",status:"tbd",phase:"Month -1",pdate:"",ddate:"2026-05-20",cost:"8000",cur:"USD",vendor:"",comments:"",subs:[]},
-  {id:"a27",title:"Utility Connection Fees",desc:"Connect electricity, gas, internet at new Perth rental.",type:"Admin",owner:"Both",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-31",cost:"300",cur:"AUD",vendor:"Synergy / Alinta",comments:"",subs:[]},
-  {id:"a28",title:"Initial Grocery Stockup",desc:"First big grocery shop after arrival.",type:"Purchase",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-22",cost:"700",cur:"AUD",vendor:"Coles / Woolworths",comments:"",subs:[]},
-  {id:"a29",title:"UWA Student Services Fee (SSAF)",desc:"Mandatory student services fee at UWA.",type:"Education",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-20",cost:"351",cur:"AUD",vendor:"UWA",comments:"",subs:[]},
-  {id:"a30",title:"School Admin Fees + Uniforms",desc:"Admin fees x2 children + winter/summer uniform sets (~$400 per child).",type:"School",owner:"Shahar",priority:"Medium",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-08-01",cost:"1400",cur:"AUD",vendor:"WA Dept of Education / School Shop",comments:"Admin: A$600 + Uniforms & Books: A$800",subs:[]},
-  {id:"a31",title:"SmartRider & Interim Car Rental",desc:"Public transport cards (bus/train/ferry) + 7-day rental car until SUV purchase.",type:"Travel",owner:"Both",priority:"High",status:"tbd",phase:"Month 0 Arrival",pdate:"",ddate:"2026-07-22",cost:"700",cur:"AUD",vendor:"Transperth / Hertz / Sixt",comments:"SmartRider family load: A$100 + Car rental 7 days: A$600",subs:[]},
+// ─── PLANS & ITEMS ────────────────────────────────────────────────────────────
+const SEED_PLANS = [
+  {id:"p1", title:"PhD & University",    icon:"🎓", color:"#00d4aa", desc:"UWA acceptance, enrollment, student ID"},
+  {id:"p2", title:"Visa & Immigration",  icon:"🛂", color:"#3b82f6", desc:"Passports, documents, apostille, visa application"},
+  {id:"p3", title:"Travel",              icon:"✈️",  color:"#8b5cf6", desc:"Flight booking and transport on arrival"},
+  {id:"p4", title:"Housing",             icon:"🏠", color:"#f59e0b", desc:"Temporary stay and finding permanent rental"},
+  {id:"p5", title:"Kids & Schools",      icon:"📚", color:"#ec4899", desc:"School enrollment, fee waiver, uniforms"},
+  {id:"p6", title:"Finance & Admin",     icon:"💰", color:"#10b981", desc:"Bank, TFN, MyGov, utilities, contracts"},
+  {id:"p7", title:"Vehicle",             icon:"🚗", color:"#f97316", desc:"Car purchase, license conversion, car seats"},
+  {id:"p8", title:"Health & Medical",    icon:"🏥", color:"#ef4444", desc:"OSHC, Medicare, immunisation records"},
+];
+
+const SEED_ITEMS = [
+  // ── P1: PhD & University ──
+  {id:"a1", planId:"p1", title:"Getting accepted to PhD by UWA", desc:"PhD acceptance is the foundational milestone that enables all other relocation activities.", owner:"Shahar", priority:"High", status:"in progress", phase:"Month -6", ddate:"2026-03-01", cost:"", cur:"ILS", cost2:"", cur2:"AUD", vendor:"University of Western Australia", comments:"", subs:[{id:"s1",t:"Submit application",done:true},{id:"s2",t:"Receive confirmation email",done:false}]},
+  {id:"a12",planId:"p1", title:"Apply for USI (Unique Student ID)", desc:"Mandatory for all students in Australia. Do online after landing.", owner:"Shahar", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-20", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Australian Government", comments:"", subs:[]},
+  {id:"a29",planId:"p1", title:"UWA Student Services Fee (SSAF)", desc:"Mandatory student services fee at UWA.", owner:"Shahar", priority:"Medium", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-20", cost:"351", cur:"AUD", cost2:"", cur2:"ILS", vendor:"UWA", comments:"", subs:[]},
+
+  // ── P2: Visa & Immigration ──
+  {id:"a2", planId:"p2", title:"Passport Renewal", desc:"Ensure all passports have 2+ years validity past arrival date.", owner:"Raz", priority:"High", status:"tbd", phase:"Month -6", ddate:"2026-01-15", cost:"", cur:"ILS", cost2:"", cur2:"AUD", vendor:"", comments:"", subs:[]},
+  {id:"a3", planId:"p2", title:"Apostille Documents", desc:"Get marriage & birth certificates translated and apostilled.", owner:"Shahar", priority:"Medium", status:"in progress", phase:"Month -6", ddate:"2026-02-01", cost:"1500", cur:"ILS", cost2:"400", cur2:"ILS", vendor:"Notary / Israeli Foreign Affairs", comments:"ILS 1500 translations + ILS 400 apostille fee", subs:[]},
+  {id:"a4", planId:"p2", title:"Request Entry/Exit Records (10 years)", desc:"Get 'Ishur Knisot VeYitziot' from Population Authority for visa GTE statement.", owner:"Raz", priority:"High", status:"tbd", phase:"Month -6", ddate:"2026-02-01", cost:"", cur:"ILS", cost2:"", cur2:"AUD", vendor:"Israeli Population Authority", comments:"", subs:[]},
+  {id:"a8", planId:"p2", title:"Verify UWA Medibank Waiver", desc:"Confirm UWA's deal with Medibank waives the 12-month waiting period.", owner:"Shahar", priority:"Medium", status:"tbd", phase:"Month -4", ddate:"2026-03-01", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Medibank", comments:"", subs:[]},
+  {id:"a6", planId:"p2", title:"OSHC & Visa Application", desc:"Pay health insurance and submit subclass 500 student visa.", owner:"Shahar", priority:"High", status:"tbd", phase:"Month -4", ddate:"2026-03-01", cost:"37000", cur:"AUD", cost2:"3590", cur2:"AUD", vendor:"Home Affairs AU / Medibank", comments:"OSHC Family 4yr: A$37,000 + Student+Spouse+Kids visas: A$3,590", subs:[]},
+  {id:"a7", planId:"p2", title:"Medical Exams & Biometrics", desc:"Health examinations required for visa application.", owner:"Both", priority:"High", status:"tbd", phase:"Month -3", ddate:"2026-04-01", cost:"2400", cur:"ILS", cost2:"", cur2:"AUD", vendor:"Assuta / IOM Israel", comments:"", subs:[]},
+  {id:"a5", planId:"p2", title:"Confirm 100-Point ID Check", desc:"Gather Passport, AU Bank Statement, Rental Lease for local ID score.", owner:"Both", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-25", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"", comments:"", subs:[]},
+
+  // ── P3: Travel ──
+  {id:"a9", planId:"p3", title:"Book Flight TLV → PER", desc:"One-way flights for family of 4. This date anchors all time-sensitive tasks.", owner:"Shahar", priority:"High", status:"tbd", phase:"Month -3", ddate:"2026-04-01", cost:"18500", cur:"ILS", cost2:"", cur2:"AUD", vendor:"Airline", comments:"", subs:[]},
+  {id:"a31",planId:"p3", title:"SmartRider & Interim Car Rental", desc:"Public transport cards + 7-day rental car until SUV purchase.", owner:"Both", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-22", cost:"100", cur:"AUD", cost2:"600", cur2:"AUD", vendor:"Transperth / Hertz / Sixt", comments:"SmartRider: A$100 + Car rental 7 days: A$600", subs:[]},
+  {id:"a26",planId:"p3", title:"Ship Personal Belongings", desc:"Arrange sea or air freight container for personal items.", owner:"Raz", priority:"Medium", status:"tbd", phase:"Month -1", ddate:"2026-05-20", cost:"8000", cur:"USD", cost2:"", cur2:"ILS", vendor:"", comments:"", subs:[]},
+
+  // ── P4: Housing ──
+  {id:"a14",planId:"p4", title:"Temporary Airbnb (14 days)", desc:"Short-term accommodation on arrival while finding permanent rental.", owner:"Both", priority:"High", status:"tbd", phase:"Month -2", ddate:"2026-05-01", cost:"8500", cur:"ILS", cost2:"", cur2:"AUD", vendor:"Airbnb", comments:"", subs:[]},
+  {id:"a13",planId:"p4", title:"Find Rental Accommodation in Perth", desc:"Secure housing near UWA — Nedlands / Subiaco area.", owner:"Both", priority:"High", status:"tbd", phase:"Month -3", ddate:"2026-04-15", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"", comments:"", subs:[]},
+  {id:"a15",planId:"p4", title:"Rental Bond + First 2 Weeks Upfront", desc:"Attend at least 5 viewings in first week after arrival.", owner:"Both", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-27", cost:"3400", cur:"AUD", cost2:"1700", cur2:"AUD", vendor:"Real Estate Agent", comments:"Bond 4wk: A$3,400 + 2wk upfront: A$1,700", subs:[]},
+  {id:"a27",planId:"p4", title:"Utility Connection Fees", desc:"Connect electricity, gas, internet at new Perth rental.", owner:"Both", priority:"Medium", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-31", cost:"300", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Synergy / Alinta", comments:"", subs:[]},
+
+  // ── P5: Kids & Schools ──
+  {id:"a10",planId:"p5", title:"Enrol Kids in School (TIWA)", desc:"Contact TIWA for placement confirmation.", owner:"Shahar", priority:"High", status:"tbd", phase:"Month -3", ddate:"2026-05-01", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"TIWA / WA Dept of Education", comments:"", subs:[]},
+  {id:"a11",planId:"p5", title:"Apply for TIWA Fee Waiver", desc:"Submit PhD CoE to WA Education to waive $15k/year school fees per child.", owner:"Shahar", priority:"High", status:"tbd", phase:"Month -2", ddate:"2026-05-01", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"WA Department of Education", comments:"Critical — saves ~$30k/year", subs:[]},
+  {id:"a30",planId:"p5", title:"School Admin Fees + Uniforms", desc:"Admin fees x2 children + winter/summer uniform sets.", owner:"Shahar", priority:"Medium", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-08-01", cost:"600", cur:"AUD", cost2:"800", cur2:"AUD", vendor:"WA Dept of Education / School Shop", comments:"Admin: A$600 + Uniforms & Books: A$800", subs:[]},
+  {id:"a24",planId:"p5", title:"Working with Children Check (WWCC)", desc:"Both parents need this for volunteering at kids' schools.", owner:"Both", priority:"Medium", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-08-01", cost:"11", cur:"AUD", cost2:"", cur2:"ILS", vendor:"WA Government", comments:"", subs:[]},
+
+  // ── P6: Finance & Admin ──
+  {id:"a16",planId:"p6", title:"Setup Wise / AU Bank Account", desc:"Transfer initial settlement funds to AUD before arrival.", owner:"Raz", priority:"High", status:"tbd", phase:"Month -1", ddate:"2026-06-01", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Commonwealth Bank / ANZ / Wise", comments:"", subs:[]},
+  {id:"a17",planId:"p6", title:"Apply for TFN", desc:"Tax File Number application for both parents.", owner:"Both", priority:"Medium", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-25", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"ATO", comments:"", subs:[]},
+  {id:"a18",planId:"p6", title:"Setup MyGov & MyGovID", desc:"Link Visa, ATO, and Health records for digital management.", owner:"Both", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-25", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Australian Government", comments:"", subs:[]},
+  {id:"a25",planId:"p6", title:"Terminate Israeli Contracts", desc:"Cancel Arnona, Electricity, Water, Internet before departure.", owner:"Raz", priority:"Medium", status:"tbd", phase:"Month -1", ddate:"2026-06-15", cost:"", cur:"ILS", cost2:"", cur2:"AUD", vendor:"", comments:"", subs:[]},
+  {id:"a23",planId:"p6", title:"Join 'Israelis in Perth' FB Group", desc:"Local networking for 'Buy Nothing' furniture and community advice.", owner:"Both", priority:"Low", status:"tbd", phase:"Month -2", ddate:"", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Facebook", comments:"", subs:[]},
+  {id:"a28",planId:"p6", title:"Initial Grocery Stockup", desc:"First big grocery shop after arrival.", owner:"Shahar", priority:"Medium", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-22", cost:"700", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Coles / Woolworths", comments:"", subs:[]},
+
+  // ── P7: Vehicle ──
+  {id:"a19",planId:"p7", title:"Buy Family Car", desc:"Visit Osborne Park/Canning Vale for SUV. Toyota RAV4 or similar (2018-20).", owner:"Raz", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-31", cost:"22000", cur:"AUD", cost2:"1400", cur2:"AUD", vendor:"Private/Dealer", comments:"Car: A$22,000 + Rego & Insurance: A$1,400", subs:[]},
+  {id:"a20",planId:"p7", title:"WA Driver's License Conversion", desc:"Driving instructor + theory test + PDA. Mandatory for Israeli license holders.", owner:"Raz", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-08-15", cost:"235", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Transport WA", comments:"Theory: A$25 + PDA: A$150 + License: A$60", subs:[]},
+
+  // ── P8: Health & Medical ──
+  {id:"a21",planId:"p8", title:"Register with Medicare", desc:"Check if any temporary Medicare access applies. Verify OSHC card covers gaps.", owner:"Shahar", priority:"Medium", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-07-31", cost:"100", cur:"AUD", cost2:"", cur2:"ILS", vendor:"St John WA / Medicare", comments:"Ambulance cover extra: A$100", subs:[]},
+  {id:"a22",planId:"p8", title:"Update AIR (Immunisation Register)", desc:"Translate kids' Pink Book and give to GP to upload to Medicare/AIR.", owner:"Shahar", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-08-01", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Local GP", comments:"", subs:[]},
 ];
 const SEED_DOCS = [
   {id:"d1",type:"Passport – Raz",exp:"2030-05-12",aid:"a2",notes:"Renew if <2yr validity past Jul 2026"},
@@ -581,7 +598,8 @@ function Pie({data}){
 // ─── APP ROOT ─────────────────────────────────────────────────────────────────
 export default function App(){
   const [page,setPage] = useLS("prc_page","today");
-  const [actions,setActions] = useLS("prc_acts",SEED_ACTIONS);
+  const [plans,setPlans] = useLS("prc_plans",SEED_PLANS);
+  const [items,setItems] = useLS("prc_items",SEED_ITEMS);
   const [docs,setDocs] = useLS("prc_docs",SEED_DOCS);
   const [shop,setShop] = useLS("prc_shop",SEED_SHOP);
   const [rates,setRates] = useLS("prc_rates",{AUD:2.17,USD:3.08,upd:"Manual",fetching:false});
@@ -594,17 +612,17 @@ export default function App(){
 
   const T=(msg,type="ok")=>{ setToast({msg,type}); setTimeout(()=>setToast(null),3500); };
 
-  const phdDone = actions.find(a=>a.id==="a1")?.status==="done";
-  const overdue = actions.filter(a=>a.ddate&&new Date(a.ddate)<new Date()&&a.status!=="done").length;
+  const phdDone = items.find(a=>a.id==="a1")?.status==="done";
+  const overdue = items.filter(a=>a.ddate&&new Date(a.ddate)<new Date()&&a.status!=="done").length;
 
-  const saveAction = a => {
+  const saveItem = a => {
     if(!a.title?.trim()){ T("Title is required","err"); return false; }
-    setActions(prev => a.id&&prev.find(x=>x.id===a.id) ? prev.map(x=>x.id===a.id?a:x) : [...prev,{...a,id:"a"+Date.now(),subs:a.subs||[]}]);
+    setItems(prev => a.id&&prev.find(x=>x.id===a.id) ? prev.map(x=>x.id===a.id?a:x) : [...prev,{...a,id:"a"+Date.now(),subs:a.subs||[]}]);
     T("Saved ✓"); return true;
   };
-  const deleteAction = id => { setActions(prev=>prev.filter(a=>a.id!==id)); T("Deleted"); };
+  const deleteItem = id => { setItems(prev=>prev.filter(a=>a.id!==id)); T("Deleted"); };
   const cycleStatus = id => {
-    setActions(prev=>prev.map(a=>a.id===id?{...a,status:STATUS_CYCLE[a.status]||"tbd"}:a));
+    setItems(prev=>prev.map(a=>a.id===id?{...a,status:STATUS_CYCLE[a.status]||"tbd"}:a));
   };
 
   const fetchRates = async () => {
@@ -634,8 +652,8 @@ export default function App(){
 
   const fmtC = v => fmt(v,cur);
 
-  const totEstILS = actions.reduce((s,a)=>s+totalCostILS(a,rates),0);
-  const totPaidILS = actions.filter(a=>a.status==="done").reduce((s,a)=>s+totalCostILS(a,rates),0);
+  const totEstILS = items.reduce((s,a)=>s+totalCostILS(a,rates),0);
+  const totPaidILS = items.filter(a=>a.status==="done").reduce((s,a)=>s+totalCostILS(a,rates),0);
   const totEst = conv(totEstILS,"ILS",rates,cur);
   const totPaid = conv(totPaidILS,"ILS",rates,cur);
   const shopTot = shop.reduce((s,i)=>s+conv(i.cost,"AUD",rates,cur),0);
@@ -686,10 +704,10 @@ export default function App(){
             <span style={{marginLeft:"auto",fontSize:10,color:"var(--t2)"}}>A$=₪{rates.AUD} · $=₪{rates.USD}</span>
           </div>
 
-          {page==="today" && <TodayPage actions={actions} phdDone={phdDone} tick={tick} cur={cur} rates={rates} fmtC={fmtC} totEst={totEst} totPaid={totPaid} overdue={overdue} onEdit={a=>setModal({type:"action",a})} onNew={()=>setModal({type:"action",a:null})} cycleStatus={cycleStatus} setPage={setPage}/>}
-          {page==="plan"  && <PlanPage actions={actions} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"action",a})} onNew={()=>setModal({type:"action",a:null})} onDelete={deleteAction} cycleStatus={cycleStatus} T={T}/>}
-          {page==="vault" && <VaultPage actions={actions} docs={docs} setDocs={setDocs} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
-          {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates}/>}
+          {page==="today" && <TodayPage items={items} plans={plans} phdDone={phdDone} tick={tick} cur={cur} rates={rates} fmtC={fmtC} totEst={totEst} totPaid={totPaid} overdue={overdue} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} cycleStatus={cycleStatus} setPage={setPage}/>}
+          {page==="plan"  && <PlanPage items={items} plans={plans} setPlans={setPlans} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} onDelete={deleteItem} cycleStatus={cycleStatus} T={T}/>}
+          {page==="vault" && <VaultPage items={items} docs={docs} setDocs={setDocs} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
+          {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates} items={items} setItems={setItems} plans={plans} setPlans={setPlans}/>}
 
           {/* RATES BAR */}
           <div className="rates-bar">
@@ -723,17 +741,29 @@ export default function App(){
         </nav>
 
       {/* ACTION MODAL */}
-      {modal?.type==="action" && <ActionModal a={modal.a} onSave={a=>{if(saveAction(a))setModal(null);}} onClose={()=>setModal(null)}/>}
+      {modal?.type==="item" && <ItemModal a={modal.a} defaultPlanId={modal.planId} plans={plans} onSave={a=>{if(saveItem(a))setModal(null);}} onClose={()=>setModal(null)}/>}
       {toast && <div className={`toast ${toast.type}`}>{toast.type==="err"?"⚠️":toast.type==="inf"?"ℹ️":"✅"} {toast.msg}</div>}
     </>
   );
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// PLAN STATUS HELPER
+// ─────────────────────────────────────────────────────────────────────────────
+function planStatus(planItems){
+  if(!planItems.length) return "tbd";
+  const nonIrr = planItems.filter(i=>i.status!=="irrelevant");
+  if(!nonIrr.length) return "irrelevant";
+  if(nonIrr.every(i=>i.status==="done")) return "done";
+  if(nonIrr.some(i=>i.status==="in progress"||i.status==="done")) return "in progress";
+  return "tbd";
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // TODAY PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,onEdit,onNew,cycleStatus,setPage}){
-  const active = actions.filter(a=>a.status!=="done"&&a.status!=="irrelevant");
+function TodayPage({items,plans,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,onEdit,onNew,cycleStatus,setPage}){
+  const active = items.filter(a=>a.status!=="done"&&a.status!=="irrelevant");
   const urgent = [...active].sort((a,b)=>{
     const pd={High:0,Medium:1,Low:2};
     if(a.ddate&&b.ddate) return new Date(a.ddate)-new Date(b.ddate);
@@ -741,13 +771,13 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
     return pd[a.priority]-pd[b.priority];
   })[0];
 
-  const byOwner = owner => active.filter(a=>a.owner===owner)
+  const byOwner = owner => active.filter(a=>a.owner===owner||a.owner==="Both")
     .sort((a,b)=>({High:0,Medium:1,Low:2}[a.priority]||1)-({High:0,Medium:1,Low:2}[b.priority]||1))
     .slice(0,4);
 
   const pct = totEst>0 ? Math.min(100,Math.round(totPaid/totEst*100)) : 0;
-  const done = actions.filter(a=>a.status==="done").length;
-  const stCounts = ["tbd","in progress","done","irrelevant"].map(s=>({lbl:s==="in progress"?"In Progress":s[0].toUpperCase()+s.slice(1),v:actions.filter(a=>a.status===s).length}));
+  const done = items.filter(a=>a.status==="done").length;
+  const stCounts = ["tbd","in progress","done","irrelevant"].map(s=>({lbl:s==="in progress"?"In Progress":s[0].toUpperCase()+s.slice(1),v:items.filter(a=>a.status===s).length}));
 
   return(
     <>
@@ -763,10 +793,10 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
             <div className="phd-name">PhD Acceptance – University of Western Australia</div>
             <div className="phd-hint">{phdDone?"Timeline active · countdown running":"Timeline is paused until acceptance is confirmed"}</div>
           </div>
-          <button className="btn btn-s btn-sm" onClick={()=>onEdit(actions.find(a=>a.id==="a1"))}>{phdDone?"View":"Update Status"}</button>
+          <button className="btn btn-s btn-sm" onClick={()=>onEdit(items.find(a=>a.id==="a1"))}>{phdDone?"View":"Update Status"}</button>
         </div>
 
-        {/* Urgent + Countdown row */}
+        {/* Urgent + Countdown */}
         <div className="g2" style={{marginBottom:14}}>
           {urgent ? (
             <div className="urgent-card">
@@ -779,9 +809,7 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
                 {urgent.ddate&&<span style={{fontSize:10,color:new Date(urgent.ddate)<new Date()?"var(--re)":"var(--t2)"}}>Due {urgent.ddate}</span>}
               </div>
               <div className="urgent-actions">
-                <button className="btn btn-g btn-sm" onClick={()=>cycleStatus(urgent.id)}>
-                  {urgent.status==="tbd"?"▶ Start":"✓ Mark Done"}
-                </button>
+                <button className="btn btn-g btn-sm" onClick={()=>cycleStatus(urgent.id)}>{urgent.status==="tbd"?"▶ Start":"✓ Mark Done"}</button>
                 <button className="btn btn-s btn-sm" onClick={()=>onEdit(urgent)}>Edit</button>
               </div>
               {urgent.id==="a9"&&<FlightPanel/>}
@@ -789,8 +817,8 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
           ) : (
             <div className="urgent-card">
               <div className="urgent-label">✅ All Clear</div>
-              <div className="urgent-title">No urgent actions pending</div>
-              <div style={{marginTop:10}}><button className="btn btn-g btn-sm" onClick={onNew}>+ Add Action</button></div>
+              <div className="urgent-title">No urgent items pending</div>
+              <div style={{marginTop:10}}><button className="btn btn-g btn-sm" onClick={()=>onNew(plans[0]?.id)}>+ Add Item</button></div>
             </div>
           )}
           <div className="countdown">
@@ -821,16 +849,16 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
           </div>
           <div className="bpulse">
             <div className="stat-label">Progress</div>
-            <div style={{fontFamily:"var(--fd)",fontSize:22,fontWeight:800,color:"var(--b)",marginTop:3}}>{done}/{actions.length}</div>
-            <div className="pbar" style={{marginTop:8}}><div className="pfill g" style={{width:actions.length?Math.round(done/actions.length*100)+"%":"0%"}}/></div>
-            <div className="stat-sub">actions complete</div>
+            <div style={{fontFamily:"var(--fd)",fontSize:22,fontWeight:800,color:"var(--b)",marginTop:3}}>{done}/{items.length}</div>
+            <div className="pbar" style={{marginTop:8}}><div className="pfill g" style={{width:items.length?Math.round(done/items.length*100)+"%":"0%"}}/></div>
+            <div className="stat-sub">items complete</div>
           </div>
           <div className="bpulse" style={{maxWidth:220}}>
             <div className="stat-label">Alerts</div>
             {overdue>0&&<div style={{marginTop:6}}><span className="tag tr">{overdue} overdue</span></div>}
             {!phdDone&&<div style={{marginTop:6}}><span className="tag tam">PhD pending</span></div>}
             {overdue===0&&phdDone&&<div style={{marginTop:6}}><span className="tag tg">All clear ✓</span></div>}
-            <div style={{marginTop:8,fontSize:11,color:"var(--t2)"}}>{active.length} active actions</div>
+            <div style={{marginTop:8,fontSize:11,color:"var(--t2)"}}>{active.length} active items</div>
           </div>
         </div>
 
@@ -840,7 +868,7 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
             <div key={owner} className="owner-col">
               <div className="owner-col-header">
                 <div className={`ava ${ownerCls(owner)}`} style={{width:28,height:28,fontSize:12}}>{ownerInit(owner)}</div>
-                <div className="owner-col-name">{owner}'s Actions</div>
+                <div className="owner-col-name">{owner}'s Items</div>
                 <button className="btn btn-s btn-sm" style={{marginLeft:"auto",fontSize:10}} onClick={()=>setPage("plan")}>See all →</button>
               </div>
               {byOwner(owner).map(a=>(
@@ -849,7 +877,7 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
                     <div style={{flex:1}}>
                       <div style={{fontWeight:600,fontSize:12,color:"var(--t0)"}}>{a.title}</div>
                       <div style={{display:"flex",gap:5,marginTop:5,flexWrap:"wrap",alignItems:"center"}}>
-                        <span className={`tag ${stCls(a.status)} status-tog`} title="Click to cycle status" onClick={()=>cycleStatus(a.id)}>{a.status}</span>
+                        <span className={`tag ${stCls(a.status)} status-tog`} onClick={()=>cycleStatus(a.id)}>{a.status}</span>
                         <span className={`tag ${prCls(a.priority)}`}>{a.priority}</span>
                         {a.ddate&&<span style={{fontSize:10,color:new Date(a.ddate)<new Date()&&a.status!=="done"?"var(--re)":"var(--t2)"}}>Due {a.ddate}</span>}
                       </div>
@@ -876,51 +904,133 @@ function TodayPage({actions,phdDone,tick,cur,rates,fmtC,totEst,totPaid,overdue,o
 // ─────────────────────────────────────────────────────────────────────────────
 // PLAN PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function PlanPage({actions,rates,cur,fmtC,phdDone,onEdit,onNew,onDelete,cycleStatus,T}){
-  const [tab,setTab] = useState("actions");
-  const [fSt,setFSt] = useState("all");
-  const [fOw,setFOw] = useState("all");
-  const [fPr,setFPr] = useState("all");
-  const [fTy,setFTy] = useState("all");
-  const [q,setQ] = useState("");
-  const [showDone,setShowDone] = useState(false);
-
+function PlanPage({items,plans,setPlans,rates,cur,fmtC,phdDone,onEdit,onNew,onDelete,cycleStatus,T}){
+  const [tab,setTab] = useState("plans");
   return(
     <>
       <div className="page-header">
         <div className="page-title">Plan ⚡</div>
-        <div className="page-sub">{actions.length} actions · {actions.filter(a=>a.status==="done").length} done</div>
+        <div className="page-sub">{plans.length} plans · {items.length} items · {items.filter(a=>a.status==="done").length} done</div>
         <div className="tabs">
-          {[["actions","All Actions"],["phases","By Phase"],["journey","Journey"]].map(([id,lbl])=>(
+          {[["plans","Plans"],["all","All Items"],["phases","By Phase"],["journey","Journey"]].map(([id,lbl])=>(
             <button key={id} className={`tab ${tab===id?"on":""}`} onClick={()=>setTab(id)}>{lbl}</button>
           ))}
         </div>
       </div>
       <div className="page-body">
-        {tab==="actions" && <AllActionsTab actions={actions} fSt={fSt} setFSt={setFSt} fOw={fOw} setFOw={setFOw} fPr={fPr} setFPr={setFPr} fTy={fTy} setFTy={setFTy} q={q} setQ={setQ} showDone={showDone} setShowDone={setShowDone} onEdit={onEdit} onNew={onNew} onDelete={onDelete} cycleStatus={cycleStatus} rates={rates} fmtC={fmtC} T={T}/>}
-        {tab==="phases" && <PhasesTab actions={actions} onEdit={onEdit}/>}
-        {tab==="journey" && <JourneyTab actions={actions} phdDone={phdDone}/>}
+        {tab==="plans"   && <PlansTab items={items} plans={plans} rates={rates} fmtC={fmtC} onEdit={onEdit} onNew={onNew} onDelete={onDelete} cycleStatus={cycleStatus} T={T}/>}
+        {tab==="all"     && <AllItemsTab items={items} plans={plans} onEdit={onEdit} onNew={()=>onNew(plans[0]?.id)} onDelete={onDelete} cycleStatus={cycleStatus} rates={rates} fmtC={fmtC} T={T}/>}
+        {tab==="phases"  && <PhasesTab items={items} onEdit={onEdit}/>}
+        {tab==="journey" && <JourneyTab items={items} phdDone={phdDone}/>}
       </div>
     </>
   );
 }
 
-function AllActionsTab({actions,fSt,setFSt,fOw,setFOw,fPr,setFPr,fTy,setFTy,q,setQ,showDone,setShowDone,onEdit,onNew,onDelete,cycleStatus,rates,fmtC,T}){
-  const filtered = actions.filter(a=>{
+// ── PLANS TAB — shows plan cards with aggregated data ──
+function PlansTab({items,plans,rates,fmtC,onEdit,onNew,onDelete,cycleStatus,T}){
+  const [expanded,setExpanded] = useState({});
+  const toggle = id => setExpanded(e=>({...e,[id]:!e[id]}));
+
+  return(
+    <>
+      <div style={{display:"flex",justifyContent:"flex-end",marginBottom:12}}>
+        <button className="btn btn-g" onClick={()=>onNew(plans[0]?.id)}>+ New Item</button>
+      </div>
+      {plans.map(plan=>{
+        const pi = items.filter(i=>i.planId===plan.id);
+        const ps = planStatus(pi);
+        const total = pi.reduce((s,i)=>s+totalCostILS(i,rates),0);
+        const done = pi.filter(i=>i.status==="done").length;
+        const pct = pi.length ? Math.round(done/pi.length*100) : 0;
+        const isOpen = expanded[plan.id];
+        const phases = [...new Set(pi.map(i=>i.phase).filter(Boolean))];
+        return(
+          <div key={plan.id} className="card" style={{marginBottom:10,borderLeft:`3px solid ${plan.color}`}}>
+            {/* Plan Header */}
+            <div style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer"}} onClick={()=>toggle(plan.id)}>
+              <span style={{fontSize:20}}>{plan.icon}</span>
+              <div style={{flex:1}}>
+                <div style={{fontFamily:"var(--fd)",fontWeight:700,fontSize:14,color:"var(--t0)"}}>{plan.title}</div>
+                <div style={{fontSize:11,color:"var(--t2)",marginTop:1}}>{plan.desc}</div>
+              </div>
+              <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:4}}>
+                <span className={`tag ${stCls(ps)}`}>{ps}</span>
+                <span style={{fontSize:10,color:"var(--t2)"}}>{done}/{pi.length} items</span>
+              </div>
+              <span style={{fontSize:16,color:"var(--t2)",marginLeft:4}}>{isOpen?"▾":"▸"}</span>
+            </div>
+
+            {/* Plan Stats */}
+            <div style={{display:"flex",gap:12,marginTop:10,flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:120}}>
+                <div className="pbar"><div className="pfill" style={{width:pct+"%",background:plan.color}}/></div>
+                <div style={{fontSize:10,color:"var(--t2)",marginTop:3}}>{pct}% complete</div>
+              </div>
+              {total>0&&<span style={{fontSize:12,fontWeight:700,color:plan.color}}>₪{Math.round(total).toLocaleString()}</span>}
+              {phases.length>0&&<span style={{fontSize:10,color:"var(--t2)"}}>{phases.join(" · ")}</span>}
+            </div>
+
+            {/* Items List (expanded) */}
+            {isOpen&&(
+              <div style={{marginTop:12,borderTop:"1px solid var(--bd)",paddingTop:10}}>
+                {pi.map(a=>(
+                  <div key={a.id} className={`acard ${a.status==="done"||a.status==="irrelevant"?"done-card":""}`} style={{marginBottom:6}}>
+                    <div className="acard-top">
+                      <div style={{flex:1}}>
+                        <div className="acard-title">{a.title}</div>
+                        {a.desc&&<div style={{fontSize:11,color:"var(--t1)",marginTop:2}}>{a.desc}</div>}
+                        <div className="acard-meta">
+                          <span className={`tag ${stCls(a.status)} status-tog`} onClick={()=>cycleStatus(a.id)}>{a.status}</span>
+                          <span className={`tag ${prCls(a.priority)}`}>{a.priority}</span>
+                          <div className={`ava ${ownerCls(a.owner)}`}>{ownerInit(a.owner)}</div>
+                          {a.ddate&&<span style={{fontSize:10,color:new Date(a.ddate)<new Date()&&a.status!=="done"?"var(--re)":"var(--t2)"}}>Due {a.ddate}</span>}
+                          {(a.cost||a.cost2)&&<span style={{fontSize:11,color:"var(--g)",fontWeight:600}}>₪{Math.round(totalCostILS(a,rates)).toLocaleString()}</span>}
+                        </div>
+                        {a.subs?.length>0&&<div style={{marginTop:5}}><div className="mini-bar"><div className="mini-fill" style={{width:`${a.subs.filter(s=>s.done).length/a.subs.length*100}%`}}/></div><div style={{fontSize:10,color:"var(--t2)",marginTop:2}}>{a.subs.filter(s=>s.done).length}/{a.subs.length} subtasks</div></div>}
+                      </div>
+                      <div className="acard-actions">
+                        <button className="btn btn-s btn-sm" onClick={()=>onEdit(a)}>Edit</button>
+                        <button className="btn btn-d btn-sm" onClick={()=>onDelete(a.id)}>✕</button>
+                      </div>
+                    </div>
+                    {a.id==="a9"&&<FlightPanel/>}
+                  </div>
+                ))}
+                <button className="btn btn-s btn-sm" style={{marginTop:6,width:"100%",justifyContent:"center"}} onClick={()=>onNew(plan.id)}>+ Add Item to {plan.title}</button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+// ── ALL ITEMS TAB ──
+function AllItemsTab({items,plans,onEdit,onNew,onDelete,cycleStatus,rates,fmtC,T}){
+  const [fSt,setFSt] = useState("all");
+  const [fOw,setFOw] = useState("all");
+  const [fPr,setFPr] = useState("all");
+  const [fPl,setFPl] = useState("all");
+  const [q,setQ] = useState("");
+  const [showDone,setShowDone] = useState(false);
+
+  const filtered = items.filter(a=>{
     if(!showDone&&(a.status==="done"||a.status==="irrelevant")) return false;
     if(fSt!=="all"&&a.status!==fSt) return false;
     if(fOw!=="all"&&a.owner!==fOw) return false;
     if(fPr!=="all"&&a.priority!==fPr) return false;
-    if(fTy!=="all"&&a.type!==fTy) return false;
+    if(fPl!=="all"&&a.planId!==fPl) return false;
     if(q&&!a.title.toLowerCase().includes(q.toLowerCase())) return false;
     return true;
   });
-  const doneCount = actions.filter(a=>a.status==="done"||a.status==="irrelevant").length;
+  const doneCount = items.filter(a=>a.status==="done"||a.status==="irrelevant").length;
 
   return(
     <>
       <div className="filter-bar">
-        <input className="search-in" placeholder="🔍 Search actions..." value={q} onChange={e=>setQ(e.target.value)}/>
+        <input className="search-in" placeholder="🔍 Search items..." value={q} onChange={e=>setQ(e.target.value)}/>
         <select className="fsel" value={fSt} onChange={e=>setFSt(e.target.value)}>
           <option value="all">All Status</option>
           {["tbd","in progress","done","irrelevant"].map(s=><option key={s} value={s}>{s}</option>)}
@@ -933,17 +1043,44 @@ function AllActionsTab({actions,fSt,setFSt,fOw,setFOw,fPr,setFPr,fTy,setFTy,q,se
           <option value="all">All Priority</option>
           {["High","Medium","Low"].map(p=><option key={p} value={p}>{p}</option>)}
         </select>
-        <select className="fsel" value={fTy} onChange={e=>setFTy(e.target.value)}>
-          <option value="all">All Types</option>
-          {["Task","Expense","Purchase","Document","Visa Step","Housing","School","Admin"].map(t=><option key={t} value={t}>{t}</option>)}
+        <select className="fsel" value={fPl} onChange={e=>setFPl(e.target.value)}>
+          <option value="all">All Plans</option>
+          {plans.map(p=><option key={p.id} value={p.id}>{p.icon} {p.title}</option>)}
         </select>
-        <button className="btn btn-s btn-sm" onClick={()=>{csvDl(actions.map(a=>({title:a.title,type:a.type,owner:a.owner,priority:a.priority,status:a.status,phase:a.phase,cost:a.cost,cur:a.cur,ddate:a.ddate})),"actions.csv");T("Exported ✓");}}>↓ CSV</button>
-        <button className="btn btn-g" onClick={onNew}>+ New Action</button>
+        <button className="btn btn-s btn-sm" onClick={()=>{csvDl(items.map(a=>({plan:plans.find(p=>p.id===a.planId)?.title,title:a.title,owner:a.owner,priority:a.priority,status:a.status,phase:a.phase,cost:a.cost,cur:a.cur,cost2:a.cost2,cur2:a.cur2,ddate:a.ddate})),"items.csv");T("Exported ✓");}}>↓ CSV</button>
+        <button className="btn btn-g" onClick={onNew}>+ New Item</button>
       </div>
-
-      {filtered.length===0&&<div style={{color:"var(--t2)",textAlign:"center",padding:"32px 0"}}>No actions match filters</div>}
-      {filtered.map(a=><FullActionCard key={a.id} a={a} onEdit={()=>onEdit(a)} onDelete={()=>onDelete(a.id)} cycleStatus={()=>cycleStatus(a.id)}/>)}
-
+      {filtered.length===0&&<div style={{color:"var(--t2)",textAlign:"center",padding:"32px 0"}}>No items match filters</div>}
+      {filtered.map(a=>{
+        const plan = plans.find(p=>p.id===a.planId);
+        return(
+          <div key={a.id} className={`acard ${a.status==="done"||a.status==="irrelevant"?"done-card":""}`}>
+            <div className="acard-top">
+              <div style={{flex:1}}>
+                <div style={{display:"flex",alignItems:"center",gap:6,marginBottom:3}}>
+                  {plan&&<span style={{fontSize:9,color:plan.color,fontWeight:700,textTransform:"uppercase",letterSpacing:".5px"}}>{plan.icon} {plan.title}</span>}
+                </div>
+                <div className="acard-title">{a.title}</div>
+                {a.desc&&<div style={{fontSize:11,color:"var(--t1)",marginTop:2}}>{a.desc}</div>}
+                <div className="acard-meta">
+                  <span className={`tag ${stCls(a.status)} status-tog`} onClick={()=>cycleStatus(a.id)}>{a.status}</span>
+                  <span className={`tag ${prCls(a.priority)}`}>{a.priority}</span>
+                  <div className={`ava ${ownerCls(a.owner)}`}>{ownerInit(a.owner)}</div>
+                  {a.phase&&<span style={{fontSize:10,color:"var(--t2)"}}>📅 {a.phase}</span>}
+                  {a.ddate&&<span style={{fontSize:10,color:new Date(a.ddate)<new Date()&&a.status!=="done"?"var(--re)":"var(--t2)"}}>Due {a.ddate}</span>}
+                  {(a.cost||a.cost2)&&<span style={{fontSize:11,color:"var(--g)",fontWeight:600}}>{a.cost?`${a.cur} ${a.cost}`:""}{a.cost&&a.cost2?" + ":""}{a.cost2?`${a.cur2||"AUD"} ${a.cost2}`:""}</span>}
+                </div>
+                {a.subs?.length>0&&<div style={{marginTop:5}}><div className="mini-bar"><div className="mini-fill" style={{width:`${a.subs.filter(s=>s.done).length/a.subs.length*100}%`}}/></div><div style={{fontSize:10,color:"var(--t2)",marginTop:2}}>{a.subs.filter(s=>s.done).length}/{a.subs.length} subtasks</div></div>}
+              </div>
+              <div className="acard-actions">
+                <button className="btn btn-s btn-sm" onClick={()=>onEdit(a)}>Edit</button>
+                <button className="btn btn-d btn-sm" onClick={()=>onDelete(a.id)}>✕</button>
+              </div>
+            </div>
+            {a.id==="a9"&&<FlightPanel/>}
+          </div>
+        );
+      })}
       <div className="done-toggle" onClick={()=>setShowDone(s=>!s)}>
         <span>{showDone?"▾":"▸"}</span>
         <span>{showDone?`Hide completed/irrelevant`:`Show ${doneCount} completed / irrelevant`}</span>
@@ -952,39 +1089,7 @@ function AllActionsTab({actions,fSt,setFSt,fOw,setFOw,fPr,setFPr,fTy,setFTy,q,se
   );
 }
 
-function FullActionCard({a,onEdit,onDelete,cycleStatus}){
-  const isFlight = a.id==="a9";
-  const sd = a.subs?.filter(s=>s.done).length||0;
-  const st = a.subs?.length||0;
-  return(
-    <div className={`acard ${a.status==="done"||a.status==="irrelevant"?"done-card":""}`}>
-      <div className="acard-top">
-        <div style={{flex:1}}>
-          <div className="acard-title">{a.title}</div>
-          {a.desc&&<div style={{fontSize:11,color:"var(--t1)",marginTop:3}}>{a.desc}</div>}
-          <div className="acard-meta">
-            <span className={`tag ${stCls(a.status)} status-tog`} title="Click to cycle status" onClick={cycleStatus}>{a.status}</span>
-            <span className={`tag ${prCls(a.priority)}`}>{a.priority}</span>
-            <div className={`ava ${ownerCls(a.owner)}`}>{ownerInit(a.owner)}</div>
-            <span className="tag t3">{a.type}</span>
-            {a.phase&&<span style={{fontSize:10,color:"var(--t2)"}}>📅 {a.phase}</span>}
-            {a.ddate&&<span style={{fontSize:10,color:new Date(a.ddate)<new Date()&&a.status!=="done"?"var(--re)":"var(--t2)"}}>Due {a.ddate}</span>}
-            {(a.cost||a.cost2)&&<span style={{fontSize:11,color:"var(--g)",fontWeight:600}}>{a.cost?`${a.cur} ${a.cost}`:""}{a.cost&&a.cost2?" + ":""}{a.cost2?`${a.cur2||"AUD"} ${a.cost2}`:""}</span>}
-            {a.vendor&&<span style={{fontSize:10,color:"var(--t2)"}}>🏢 {a.vendor}</span>}
-          </div>
-          {st>0&&<div style={{marginTop:6}}><div className="mini-bar"><div className="mini-fill" style={{width:`${sd/st*100}%`}}/></div><div style={{fontSize:10,color:"var(--t2)",marginTop:2}}>{sd}/{st} subtasks</div></div>}
-        </div>
-        <div className="acard-actions">
-          <button className="btn btn-s btn-sm" onClick={onEdit}>Edit</button>
-          <button className="btn btn-d btn-sm" onClick={onDelete}>✕</button>
-        </div>
-      </div>
-      {isFlight&&<FlightPanel/>}
-    </div>
-  );
-}
-
-function PhasesTab({actions,onEdit}){
+function PhasesTab({items,onEdit}){
   const now=new Date();
   const curPhaseIdx = PHASES.reduce((b,p,i)=>now>=p.date?i:b,0);
   return(
@@ -994,12 +1099,12 @@ function PhasesTab({actions,onEdit}){
           <div key={p.name} className={`phase-block ${i===curPhaseIdx?"cur":""}`}>
             <div className="phase-name">{p.name}</div>
             <div className="phase-date">{p.label}</div>
-            <div className="phase-count">{actions.filter(a=>a.phase===p.name).length}</div>
+            <div className="phase-count">{items.filter(a=>a.phase===p.name).length}</div>
           </div>
         ))}
       </div>
       {PHASES.map(p=>{
-        const pa=actions.filter(a=>a.phase===p.name);
+        const pa=items.filter(a=>a.phase===p.name);
         if(!pa.length) return null;
         return(
           <div key={p.name} className="card" style={{marginBottom:10}}>
@@ -1019,13 +1124,13 @@ function PhasesTab({actions,onEdit}){
   );
 }
 
-function JourneyTab({actions,phdDone}){
+function JourneyTab({items,phdDone}){
   return(
     <>
       {!phdDone&&<div className="alert alert-w" style={{marginBottom:14}}>🔒 Complete PhD acceptance at UWA to unlock the full journey</div>}
       <div className="card">
         {JOURNEY_STEPS.map((step,i)=>{
-          const linked=actions.find(a=>a.id===step.aid);
+          const linked=items.find(a=>a.id===step.aid);
           const isDone=linked?linked.status==="done":false;
           const locked=!phdDone&&i>0;
           return(
@@ -1035,7 +1140,7 @@ function JourneyTab({actions,phdDone}){
                 <div style={{fontWeight:600,fontSize:13}}>{step.title}{locked?" 🔒":""}</div>
                 <div style={{fontSize:11,color:"var(--t1)",marginTop:2}}>{step.desc}</div>
                 {linked&&<div style={{marginTop:5}}><span className={`tag ${stCls(linked.status)}`}>{linked.status}</span></div>}
-                {step.id==="j7"&&<FlightPanel/>}
+                {step.id==="j6"&&<FlightPanel/>}
               </div>
             </div>
           );
@@ -1048,7 +1153,7 @@ function JourneyTab({actions,phdDone}){
 // ─────────────────────────────────────────────────────────────────────────────
 // VAULT PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function VaultPage({actions,docs,setDocs,shop,setShop,rates,cur,fmtC,shopTot,T}){
+function VaultPage({items,docs,setDocs,shop,setShop,rates,cur,fmtC,shopTot,T}){
   const [tab,setTab] = useState("budget");
   return(
     <>
@@ -1062,19 +1167,18 @@ function VaultPage({actions,docs,setDocs,shop,setShop,rates,cur,fmtC,shopTot,T})
         </div>
       </div>
       <div className="page-body">
-        {tab==="budget"    && <BudgetTab actions={actions} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
-        {tab==="documents" && <DocumentsTab docs={docs} setDocs={setDocs} actions={actions} T={T}/>}
+        {tab==="budget"    && <BudgetTab items={items} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
+        {tab==="documents" && <DocumentsTab docs={docs} setDocs={setDocs} items={items} T={T}/>}
         {tab==="shopping"  && <ShoppingTab shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} T={T}/>}
       </div>
     </>
   );
 }
 
-function BudgetTab({actions,rates,cur,fmtC,shopTot,T}){
-  const ea=actions.filter(a=>a.cost||a.cost2);
+function BudgetTab({items,rates,cur,fmtC,shopTot,T}){
+  const ea=items.filter(a=>a.cost||a.cost2);
   const tot=conv(ea.reduce((s,a)=>s+totalCostILS(a,rates),0),"ILS",rates,cur);
-  const paid=conv(ea.filter(a=>a.status==="done").reduce((s,a)=>s+totalCostILS(a,rates),0),"ILS",rates,cur);
-  const grand=tot+shopTot;
+  const paid=conv(ea.filter(a=>a.status==="done").reduce((s,a)=>s+totalCostILS(a,rates),0),"ILS",rates,cur);  const grand=tot+shopTot;
   return(
     <>
       <div className="g3" style={{marginBottom:16}}>
@@ -1118,7 +1222,7 @@ function BudgetTab({actions,rates,cur,fmtC,shopTot,T}){
   );
 }
 
-function DocumentsTab({docs,setDocs,actions,T}){
+function DocumentsTab({docs,setDocs,items,T}){
   const [mo,setMo] = useState(false);
   const [f,setF] = useState({id:"",type:"",exp:"",aid:"",notes:""});
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
@@ -1143,7 +1247,7 @@ function DocumentsTab({docs,setDocs,actions,T}){
                 <div style={{fontWeight:600,fontSize:13}}>{d.type}</div>
                 <div style={{display:"flex",gap:10,marginTop:3,flexWrap:"wrap"}}>
                   {d.exp&&<span style={{fontSize:11,color:expiring?"var(--am)":"var(--t2)"}}>Expires {d.exp}{expiring?" ⚠️":""}</span>}
-                  {d.aid&&<span style={{fontSize:11,color:"var(--t2)"}}>🔗 {actions.find(a=>a.id===d.aid)?.title||d.aid}</span>}
+                  {d.aid&&<span style={{fontSize:11,color:"var(--t2)"}}>🔗 {items.find(a=>a.id===d.aid)?.title||d.aid}</span>}
                   {d.notes&&<span style={{fontSize:11,color:"var(--t1)"}}>{d.notes}</span>}
                 </div>
               </div>
@@ -1161,7 +1265,7 @@ function DocumentsTab({docs,setDocs,actions,T}){
           <div className="fg1">
             <div className="fcol"><div className="flabel">Document Type *</div><input className="finput" value={f.type} onChange={e=>sf("type",e.target.value)}/></div>
             <div className="fcol"><div className="flabel">Expiry Date</div><input type="date" className="finput" value={f.exp} onChange={e=>sf("exp",e.target.value)}/></div>
-            <div className="fcol"><div className="flabel">Linked Action</div><select className="fselect" value={f.aid} onChange={e=>sf("aid",e.target.value)}><option value="">None</option>{actions.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></div>
+            <div className="fcol"><div className="flabel">Linked Item</div><select className="fselect" value={f.aid} onChange={e=>sf("aid",e.target.value)}><option value="">None</option>{items.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></div>
             <div className="fcol"><div className="flabel">Notes</div><textarea className="ftextarea" value={f.notes} onChange={e=>sf("notes",e.target.value)} rows={2}/></div>
           </div>
           <div className="modal-footer"><button className="btn btn-s" onClick={()=>setMo(false)}>Cancel</button><button className="btn btn-g" onClick={save}>Save</button></div>
@@ -1240,7 +1344,7 @@ function SettingsPage({rates,setRates,fetchRates}){
     if(isNaN(a)||isNaN(u)){alert("Invalid values");return;}
     setRates(r=>({...r,AUD:a,USD:u,upd:"Manual"}));
   };
-  const INFO=[["App","Perth Relocation Commander 2026"],["Origin","🇮🇱 Tel Aviv, Israel"],["Destination","🇦🇺 Perth, Australia"],["Arrival","June 26, 2026"],["Family","4 · 2 adults · 2 children (ages 5 & 7)"],["Pets","No"],["Primary Currency","ILS (₪)"],["Secondary","AUD (A$)"]];
+  const INFO=[["App","Perth Relocation Commander 2026"],["Origin","🇮🇱 Tel Aviv, Israel"],["Destination","🇦🇺 Perth, Australia"],["PhD Start","July 20, 2026"],["Family","4 · 2 adults · 2 children"],["Pets","No"],["Primary Currency","ILS (₪)"],["Secondary","AUD (A$)"]];
   return(
     <>
       <div className="page-header">
@@ -1277,7 +1381,7 @@ function SettingsPage({rates,setRates,fetchRates}){
             <div className="card" style={{marginTop:0}}>
               <div className="card-title">Data Management</div>
               <div style={{fontSize:12,color:"var(--t1)",marginBottom:12}}>All data is stored in your browser's localStorage. It persists between sessions automatically.</div>
-              <button className="btn btn-d btn-sm" onClick={()=>{if(window.confirm("Reset all data to defaults? This cannot be undone.")){["prc_acts","prc_docs","prc_shop","prc_rates","prc_cur","prc_page"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>⚠ Reset All Data</button>
+              <button className="btn btn-d btn-sm" onClick={()=>{if(window.confirm("Reset all data to defaults? This cannot be undone.")){["prc_plans","prc_items","prc_docs","prc_shop","prc_rates","prc_cur","prc_page"].forEach(k=>localStorage.removeItem(k));window.location.reload();}}}>⚠ Reset All Data</button>
             </div>
           </div>
         </div>
@@ -1321,12 +1425,12 @@ function FlightPanel(){
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ACTION MODAL — Quick Add + Advanced expand
+// ITEM MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-function ActionModal({a,onSave,onClose}){
-  const blank={id:"",title:"",desc:"",type:"Task",owner:"Raz",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"",cost:"",cur:"ILS",cost2:"",cur2:"AUD",vendor:"",comments:"",subs:[]};
+function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
+  const blank={id:"",planId:defaultPlanId||plans[0]?.id||"p1",title:"",desc:"",owner:"Raz",priority:"High",status:"tbd",phase:"Month -3",ddate:"",cost:"",cur:"ILS",cost2:"",cur2:"AUD",vendor:"",comments:"",subs:[]};
   const [f,setF] = useState(a||blank);
-  const [adv,setAdv] = useState(!!a?.id); // show advanced if editing
+  const [adv,setAdv] = useState(!!a?.id);
   const [ns,setNs] = useState("");
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
 
@@ -1339,10 +1443,16 @@ function ActionModal({a,onSave,onClose}){
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
       <div className="modal">
-        <div className="modal-title">{a?.id?"Edit Action":"New Action"}</div>
+        <div className="modal-title">{a?.id?"Edit Item":"New Item"}</div>
 
-        {/* QUICK ADD — always visible */}
+        {/* QUICK FIELDS */}
         <div className="fg">
+          <div className="fcol span2">
+            <div className="flabel">Plan</div>
+            <select className="fselect" value={f.planId} onChange={e=>sf("planId",e.target.value)}>
+              {plans.map(p=><option key={p.id} value={p.id}>{p.icon} {p.title}</option>)}
+            </select>
+          </div>
           <div className="fcol span2">
             <div className="flabel">Title *</div>
             <input className="finput" value={f.title} onChange={e=>sf("title",e.target.value)} placeholder="What needs to be done?" autoFocus/>
@@ -1374,23 +1484,21 @@ function ActionModal({a,onSave,onClose}){
         {/* ADVANCED EXPAND */}
         <div className="expand-toggle" onClick={()=>setAdv(v=>!v)}>
           <span style={{fontSize:13}}>{adv?"▾":"▸"}</span>
-          <span>{adv?"Hide advanced fields":"More options (type, cost, phase, subtasks…)"}</span>
+          <span>{adv?"Hide advanced fields":"More options (cost, phase, subtasks…)"}</span>
         </div>
 
         {adv&&(
           <>
             <div className="fg">
               <div className="fcol">
-                <div className="flabel">Type</div>
-                <select className="fselect" value={f.type} onChange={e=>sf("type",e.target.value)}>
-                  {["Task","Expense","Purchase","Document","Visa Step","Housing","School","Admin"].map(t=><option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <div className="fcol">
                 <div className="flabel">Phase</div>
                 <select className="fselect" value={f.phase} onChange={e=>sf("phase",e.target.value)}>
                   {PHASES.map(p=><option key={p.name}>{p.name}</option>)}
                 </select>
+              </div>
+              <div className="fcol">
+                <div className="flabel">Vendor</div>
+                <input className="finput" value={f.vendor} onChange={e=>sf("vendor",e.target.value)}/>
               </div>
               <div className="fcol span2">
                 <div className="flabel">Cost (two currencies → totals in ILS)</div>
@@ -1404,14 +1512,6 @@ function ActionModal({a,onSave,onClose}){
                     {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
                   </select>
                 </div>
-              </div>
-              <div className="fcol">
-                <div className="flabel">Vendor</div>
-                <input className="finput" value={f.vendor} onChange={e=>sf("vendor",e.target.value)}/>
-              </div>
-              <div className="fcol">
-                <div className="flabel">{isFlight?"Flight Date":"Planned Date"}</div>
-                <input type="date" className="finput" value={f.pdate} onChange={e=>sf("pdate",e.target.value)}/>
               </div>
               <div className="fcol span2">
                 <div className="flabel">Description</div>
@@ -1441,7 +1541,7 @@ function ActionModal({a,onSave,onClose}){
 
         <div className="modal-footer">
           <button className="btn btn-s" onClick={onClose}>Cancel</button>
-          <button className="btn btn-g" onClick={()=>onSave(f)}>Save Action</button>
+          <button className="btn btn-g" onClick={()=>onSave(f)}>Save Item</button>
         </div>
       </div>
     </div>
