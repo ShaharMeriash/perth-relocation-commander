@@ -258,18 +258,89 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
 
 /* ── RESPONSIVE ── */
 @media(max-width:820px){
-  .sidebar{width:52px;min-width:52px;}
-  .logo-area,.nav-label,.nav-item span,.nav-bottom .cur-toggle{display:none;}
-  .nav-item{justify-content:center;padding:11px;}
+  .sidebar{display:none;}
+  .app{flex-direction:column;}
+  .main{padding-bottom:68px;}
+  .page-body{padding:14px 14px 20px;}
+  .page-header{padding:14px 14px 0;}
+  .page-title{font-size:19px;}
+  .page-sub{font-size:11px;padding-bottom:12px;}
+  .tabs{overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{padding:8px 13px;font-size:11px;white-space:nowrap;}
   .g3{grid-template-columns:1fr 1fr;}
-  .gc2{grid-column:span 2;}
+  .gc2,.gc3{grid-column:span 2;}
   .today-cols{grid-template-columns:1fr;}
   .exp-hdr,.exp-row{grid-template-columns:2fr 1fr 1fr 1fr;}
+  .rates-bar{flex-wrap:wrap;gap:8px;padding:8px 14px;}
+  .filter-bar{gap:6px;}
+  .filter-bar .search-in{min-width:100%;}
+  .modal{padding:18px;border-radius:18px;max-height:92vh;}
+  .stat-val{font-size:22px;}
+  .cd-num{font-size:24px;}
+  .urgent-card{padding:14px;}
+  .countdown{padding:14px;}
+  .acard{padding:11px 12px;}
 }
 @media(max-width:580px){
-  .page-body{padding:14px 16px;}
+  .page-body{padding:12px 12px 20px;}
   .g2,.g3{grid-template-columns:1fr;}
-  .gc2{grid-column:span 1;}
+  .gc2,.gc3{grid-column:span 1;}
+  .budget-row{flex-direction:column;}
+  .flight-btns{flex-direction:column;}
+  .flight-btn{justify-content:center;}
+  .fg{grid-template-columns:1fr;}
+  .fcol.span2{grid-column:span 1;}
+  .exp-hdr{display:none;}
+  .exp-row{grid-template-columns:1fr 1fr;gap:4px;}
+  .cost-row{flex-direction:column;gap:6px;}
+}
+
+/* ── MOBILE BOTTOM NAV ── */
+.mobile-nav{
+  display:none;
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--s0);
+  border-top:1px solid var(--bd);
+  height:60px;
+  padding-bottom:env(safe-area-inset-bottom);
+  z-index:100;
+  box-shadow:0 -4px 20px rgba(0,0,0,.3);
+}
+.mobile-nav-inner{
+  display:flex;
+  height:60px;
+  align-items:center;
+  justify-content:space-around;
+  padding:0 8px;
+}
+.mob-nav-item{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:2px;padding:6px 18px;border-radius:12px;cursor:pointer;
+  min-width:56px;position:relative;transition:all .13s;
+  -webkit-tap-highlight-color:transparent;
+}
+.mob-nav-item.active{background:var(--g2);}
+.mob-nav-item .mob-ic{font-size:19px;line-height:1;}
+.mob-nav-item .mob-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);}
+.mob-nav-item.active .mob-lbl{color:var(--g);}
+.mob-nav-badge{position:absolute;top:4px;right:10px;background:var(--re);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;}
+@media(max-width:820px){
+  .mobile-nav{display:block;}
+}
+
+/* ── MOBILE CURRENCY BAR ── */
+.mob-cur-bar{
+  display:none;
+  align-items:center;gap:8px;
+  padding:8px 14px;
+  background:var(--s0);
+  border-bottom:1px solid var(--bd);
+  flex-shrink:0;
+}
+.mob-cur-label{font-size:9px;text-transform:uppercase;letter-spacing:1px;color:var(--t3);}
+@media(max-width:820px){
+  .mob-cur-bar{display:flex;}
 }
 `;
 
@@ -444,7 +515,12 @@ function fmt(v,cur){
   const sym={ILS:"₪",AUD:"A$",USD:"$"}[cur]||"₪";
   return sym+Math.round(v).toLocaleString();
 }
-function stCls(s){return s==="in progress"?"tprog":s==="done"?"tdone":s==="irrelevant"?"tirr":"tbd";}
+function totalCostILS(a, rates){
+  const c1 = conv(a.cost, a.cur, rates, "ILS");
+  const c2 = conv(a.cost2, a.cur2||"AUD", rates, "ILS");
+  return c1 + c2;
+}
+return s==="in progress"?"tprog":s==="done"?"tdone":s==="irrelevant"?"tirr":"tbd";}
 function prCls(p){return p==="High"?"tr":p==="Medium"?"tam":"t3";}
 function ownerInit(o){return(o||"?")[0];}
 function ownerCls(o){return "ava-"+(o||"E")[0];}
@@ -558,8 +634,10 @@ export default function App(){
 
   const fmtC = v => fmt(v,cur);
 
-  const totEst = actions.reduce((s,a)=>s+conv(a.cost,a.cur,rates,cur),0);
-  const totPaid = actions.filter(a=>a.status==="done").reduce((s,a)=>s+conv(a.cost,a.cur,rates,cur),0);
+  const totEstILS = actions.reduce((s,a)=>s+totalCostILS(a,rates),0);
+  const totPaidILS = actions.filter(a=>a.status==="done").reduce((s,a)=>s+totalCostILS(a,rates),0);
+  const totEst = conv(totEstILS,"ILS",rates,cur);
+  const totPaid = conv(totPaidILS,"ILS",rates,cur);
   const shopTot = shop.reduce((s,i)=>s+conv(i.cost,"AUD",rates,cur),0);
 
   const NAV=[
@@ -599,6 +677,15 @@ export default function App(){
 
         {/* MAIN */}
         <div className="main">
+          {/* MOBILE CURRENCY BAR */}
+          <div className="mob-cur-bar">
+            <span className="mob-cur-label">Currency</span>
+            <div className="cur-toggle">
+              {["ILS","AUD","USD"].map(c=><button key={c} className={`cur-btn ${cur===c?"on":""}`} onClick={()=>setCur(c)}>{c}</button>)}
+            </div>
+            <span style={{marginLeft:"auto",fontSize:10,color:"var(--t2)"}}>A$=₪{rates.AUD} · $=₪{rates.USD}</span>
+          </div>
+
           {page==="today" && <TodayPage actions={actions} phdDone={phdDone} tick={tick} cur={cur} rates={rates} fmtC={fmtC} totEst={totEst} totPaid={totPaid} overdue={overdue} onEdit={a=>setModal({type:"action",a})} onNew={()=>setModal({type:"action",a:null})} cycleStatus={cycleStatus} setPage={setPage}/>}
           {page==="plan"  && <PlanPage actions={actions} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"action",a})} onNew={()=>setModal({type:"action",a:null})} onDelete={deleteAction} cycleStatus={cycleStatus} T={T}/>}
           {page==="vault" && <VaultPage actions={actions} docs={docs} setDocs={setDocs} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
@@ -621,6 +708,19 @@ export default function App(){
           </div>
         </div>
       </div>
+
+        {/* MOBILE BOTTOM NAV */}
+        <nav className="mobile-nav">
+          <div className="mobile-nav-inner">
+            {NAV.map(n=>(
+              <div key={n.id} className={`mob-nav-item ${page===n.id?"active":""}`} onClick={()=>setPage(n.id)}>
+                <span className="mob-ic">{n.ic}</span>
+                <span className="mob-lbl">{n.lbl}</span>
+                {n.id==="today"&&overdue>0&&<span className="mob-nav-badge">{overdue}</span>}
+              </div>
+            ))}
+          </div>
+        </nav>
 
       {/* ACTION MODAL */}
       {modal?.type==="action" && <ActionModal a={modal.a} onSave={a=>{if(saveAction(a))setModal(null);}} onClose={()=>setModal(null)}/>}
@@ -869,7 +969,7 @@ function FullActionCard({a,onEdit,onDelete,cycleStatus}){
             <span className="tag t3">{a.type}</span>
             {a.phase&&<span style={{fontSize:10,color:"var(--t2)"}}>📅 {a.phase}</span>}
             {a.ddate&&<span style={{fontSize:10,color:new Date(a.ddate)<new Date()&&a.status!=="done"?"var(--re)":"var(--t2)"}}>Due {a.ddate}</span>}
-            {a.cost&&<span style={{fontSize:11,color:"var(--g)",fontWeight:600}}>{a.cur} {a.cost}</span>}
+            {(a.cost||a.cost2)&&<span style={{fontSize:11,color:"var(--g)",fontWeight:600}}>{a.cost?`${a.cur} ${a.cost}`:""}{a.cost&&a.cost2?" + ":""}{a.cost2?`${a.cur2||"AUD"} ${a.cost2}`:""}</span>}
             {a.vendor&&<span style={{fontSize:10,color:"var(--t2)"}}>🏢 {a.vendor}</span>}
           </div>
           {st>0&&<div style={{marginTop:6}}><div className="mini-bar"><div className="mini-fill" style={{width:`${sd/st*100}%`}}/></div><div style={{fontSize:10,color:"var(--t2)",marginTop:2}}>{sd}/{st} subtasks</div></div>}
@@ -971,9 +1071,9 @@ function VaultPage({actions,docs,setDocs,shop,setShop,rates,cur,fmtC,shopTot,T})
 }
 
 function BudgetTab({actions,rates,cur,fmtC,shopTot,T}){
-  const ea=actions.filter(a=>a.cost);
-  const tot=ea.reduce((s,a)=>s+conv(a.cost,a.cur,rates,cur),0);
-  const paid=ea.filter(a=>a.status==="done").reduce((s,a)=>s+conv(a.cost,a.cur,rates,cur),0);
+  const ea=actions.filter(a=>a.cost||a.cost2);
+  const tot=conv(ea.reduce((s,a)=>s+totalCostILS(a,rates),0),"ILS",rates,cur);
+  const paid=conv(ea.filter(a=>a.status==="done").reduce((s,a)=>s+totalCostILS(a,rates),0),"ILS",rates,cur);
   const grand=tot+shopTot;
   return(
     <>
@@ -1001,13 +1101,13 @@ function BudgetTab({actions,rates,cur,fmtC,shopTot,T}){
           <button className="btn btn-s btn-sm" onClick={()=>{csvDl(ea.map(a=>({title:a.title,cost:a.cost,currency:a.cur,status:a.status,owner:a.owner})),"budget.csv");T("Exported ✓");}}>↓ CSV</button>
         </div>
         <div className="exp-table">
-          <div className="exp-hdr"><span>Name</span><span>Amount</span><span>{cur}</span><span>Owner</span><span>Status</span></div>
+          <div className="exp-hdr"><span>Name</span><span>Cost 1</span><span>Cost 2</span><span>₪ Total</span><span>Status</span></div>
           {ea.map(a=>(
             <div key={a.id} className="exp-row">
               <span style={{fontWeight:500}}>{a.title}</span>
-              <span style={{color:"var(--t1)"}}>{a.cost} {a.cur}</span>
-              <span style={{color:"var(--g)",fontWeight:600}}>{fmtC(conv(a.cost,a.cur,rates,cur))}</span>
-              <div className={`ava ${ownerCls(a.owner)}`}>{ownerInit(a.owner)}</div>
+              <span style={{color:"var(--t1)"}}>{a.cost?`${a.cost} ${a.cur}`:"-"}</span>
+              <span style={{color:"var(--t1)"}}>{a.cost2?`${a.cost2} ${a.cur2||"AUD"}`:"-"}</span>
+              <span style={{color:"var(--g)",fontWeight:600}}>{fmt(totalCostILS(a,rates),"ILS")}</span>
               <span className={`tag ${stCls(a.status)}`}>{a.status}</span>
             </div>
           ))}
@@ -1224,7 +1324,7 @@ function FlightPanel(){
 // ACTION MODAL — Quick Add + Advanced expand
 // ─────────────────────────────────────────────────────────────────────────────
 function ActionModal({a,onSave,onClose}){
-  const blank={id:"",title:"",desc:"",type:"Task",owner:"Raz",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"",cost:"",cur:"ILS",vendor:"",comments:"",subs:[]};
+  const blank={id:"",title:"",desc:"",type:"Task",owner:"Raz",priority:"High",status:"tbd",phase:"Month -3",pdate:"",ddate:"",cost:"",cur:"ILS",cost2:"",cur2:"AUD",vendor:"",comments:"",subs:[]};
   const [f,setF] = useState(a||blank);
   const [adv,setAdv] = useState(!!a?.id); // show advanced if editing
   const [ns,setNs] = useState("");
@@ -1292,15 +1392,18 @@ function ActionModal({a,onSave,onClose}){
                   {PHASES.map(p=><option key={p.name}>{p.name}</option>)}
                 </select>
               </div>
-              <div className="fcol">
-                <div className="flabel">Cost</div>
-                <input type="number" className="finput" value={f.cost} onChange={e=>sf("cost",e.target.value)} placeholder="0"/>
-              </div>
-              <div className="fcol">
-                <div className="flabel">Currency</div>
-                <select className="fselect" value={f.cur} onChange={e=>sf("cur",e.target.value)}>
-                  {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
-                </select>
+              <div className="fcol span2">
+                <div className="flabel">Cost (two currencies → totals in ILS)</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto",gap:6,alignItems:"center"}}>
+                  <input type="number" className="finput" value={f.cost} onChange={e=>sf("cost",e.target.value)} placeholder="0"/>
+                  <select className="fselect" value={f.cur} onChange={e=>sf("cur",e.target.value)} style={{width:72}}>
+                    {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
+                  </select>
+                  <input type="number" className="finput" value={f.cost2||""} onChange={e=>sf("cost2",e.target.value)} placeholder="0 (optional)"/>
+                  <select className="fselect" value={f.cur2||"AUD"} onChange={e=>sf("cur2",e.target.value)} style={{width:72}}>
+                    {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
+                  </select>
+                </div>
               </div>
               <div className="fcol">
                 <div className="flabel">Vendor</div>
