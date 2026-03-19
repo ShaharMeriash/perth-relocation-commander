@@ -240,7 +240,36 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
 .flight-btn-name{font-weight:700;}
 .flight-btn-arrow{opacity:.6;font-size:11px;}
 
-/* ── DIVIDER ── */
+/* ── FINANCE DASHBOARD ── */
+.fin-kpi-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.fin-kpi{background:var(--s0);border:1px solid var(--bd);border-radius:var(--rl);padding:14px;}
+.fin-kpi-label{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--t2);}
+.fin-kpi-val{font-family:var(--fd);font-size:22px;font-weight:800;margin-top:4px;line-height:1;}
+.fin-kpi-sub{font-size:10px;color:var(--t1);margin-top:4px;}
+.bar-chart{display:flex;flex-direction:column;gap:8px;}
+.bar-row{display:flex;align-items:center;gap:8px;}
+.bar-label{font-size:11px;color:var(--t1);width:130px;flex-shrink:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.bar-track{flex:1;height:10px;background:var(--s3);border-radius:5px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:5px;transition:width .5s ease;}
+.bar-val{font-size:11px;font-weight:700;color:var(--t0);width:80px;text-align:right;flex-shrink:0;}
+.timeline-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;}
+.month-col{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:10px 8px;text-align:center;}
+.month-col.active{border-color:var(--g);background:var(--g3);}
+.month-name{font-size:10px;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:.5px;}
+.month-bar-wrap{height:60px;display:flex;align-items:flex-end;justify-content:center;margin:6px 0;}
+.month-bar{width:28px;border-radius:4px 4px 0 0;transition:height .5s ease;min-height:2px;}
+.month-amt{font-size:10px;font-weight:700;color:var(--g);}
+.month-count{font-size:9px;color:var(--t2);margin-top:2px;}
+.settled-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);}
+.settled-row:last-child{border-bottom:none;}
+.upcoming-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bd);}
+.upcoming-row:last-child{border-bottom:none;}
+@media(max-width:580px){
+  .fin-kpi-row{grid-template-columns:1fr 1fr;}
+  .bar-label{width:90px;}
+  .bar-val{width:60px;font-size:10px;}
+}
+
 .divider{height:1px;background:var(--bd);margin:12px 0;}
 
 /* ── FILTER BAR ── */
@@ -664,6 +693,7 @@ export default function App(){
   const NAV=[
     {id:"today",ic:"🏠",lbl:"Today"},
     {id:"plan",ic:"⚡",lbl:"Plan"},
+    {id:"finance",ic:"💰",lbl:"Finance"},
     {id:"vault",ic:"🗂️",lbl:"Vault"},
     {id:"settings",ic:"⚙️",lbl:"Settings"},
   ];
@@ -709,6 +739,7 @@ export default function App(){
 
           {page==="today" && <TodayPage items={items} plans={plans} phdDone={phdDone} tick={tick} cur={cur} rates={rates} fmtC={fmtC} totEst={totEst} totPaid={totPaid} overdue={overdue} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} cycleStatus={cycleStatus} setPage={setPage}/>}
           {page==="plan"  && <PlanPage items={items} plans={plans} setPlans={setPlans} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} onDelete={deleteItem} cycleStatus={cycleStatus} T={T}/>}
+          {page==="finance" && <FinancePage items={items} plans={plans} rates={rates} onEdit={a=>setModal({type:"item",a})} setItems={setItems} T={T}/>}
           {page==="vault" && <VaultPage items={items} docs={docs} setDocs={setDocs} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
           {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates} items={items} setItems={setItems} plans={plans} setPlans={setPlans}/>}
 
@@ -1394,8 +1425,233 @@ function SettingsPage({rates,setRates,fetchRates}){
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FLIGHT PANEL — 3 platform buttons
+// FINANCE PAGE
 // ─────────────────────────────────────────────────────────────────────────────
+function FinancePage({items,plans,rates,onEdit,setItems,T}){
+  const [tab,setTab] = useState("dashboard");
+
+  // All items with a cost
+  const costItems = items.filter(a=>a.cost||a.cost2);
+  const settled = costItems.filter(a=>a.settled&&a.settledDate);
+  const pending = costItems.filter(a=>!a.settled);
+
+  // Totals in ILS
+  const totalEstILS = costItems.reduce((s,a)=>s+totalCostILS(a,rates),0);
+  const totalSettledILS = settled.reduce((s,a)=>s+totalCostILS(a,rates),0);
+  const totalPendingILS = pending.reduce((s,a)=>s+totalCostILS(a,rates),0);
+
+  // Upcoming = not settled, has ddate, within 60 days
+  const now = new Date();
+  const in60 = new Date(now.getTime()+60*86400000);
+  const upcoming = pending
+    .filter(a=>a.ddate&&new Date(a.ddate)<=in60)
+    .sort((a,b)=>new Date(a.ddate)-new Date(b.ddate));
+
+  // By plan breakdown
+  const byPlan = plans.map(p=>{
+    const pi = settled.filter(a=>a.planId===p.id);
+    return {plan:p, ils:pi.reduce((s,a)=>s+totalCostILS(a,rates),0), count:pi.length};
+  }).filter(x=>x.ils>0).sort((a,b)=>b.ils-a.ils);
+  const maxPlanILS = byPlan[0]?.ils||1;
+
+  // Monthly timeline — settled by settledDate
+  const months = {};
+  settled.forEach(a=>{
+    const d = new Date(a.settledDate);
+    const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+    const label = d.toLocaleString("en-AU",{month:"short",year:"2-digit"});
+    if(!months[key]) months[key]={key,label,ils:0,count:0};
+    months[key].ils += totalCostILS(a,rates);
+    months[key].count++;
+  });
+  const monthList = Object.values(months).sort((a,b)=>a.key.localeCompare(b.key));
+  const maxMonthILS = Math.max(...monthList.map(m=>m.ils),1);
+
+  const ils = v => fmt(v,"ILS");
+  const pct = totalEstILS>0?Math.round(totalSettledILS/totalEstILS*100):0;
+
+  return(
+    <>
+      <div className="page-header">
+        <div className="page-title">Finance 💰</div>
+        <div className="page-sub">All amounts in ILS · {settled.length} settled · {pending.length} pending</div>
+        <div className="tabs">
+          {[["dashboard","Dashboard"],["settled","Settled"],["upcoming","Upcoming"]].map(([id,lbl])=>(
+            <button key={id} className={`tab ${tab===id?"on":""}`} onClick={()=>setTab(id)}>{lbl}</button>
+          ))}
+        </div>
+      </div>
+      <div className="page-body">
+
+        {tab==="dashboard" && <>
+          {/* KPI Row */}
+          <div className="fin-kpi-row">
+            <div className="fin-kpi">
+              <div className="fin-kpi-label">Total Estimated</div>
+              <div className="fin-kpi-val vg">{ils(totalEstILS)}</div>
+              <div className="fin-kpi-sub">{costItems.length} items with cost</div>
+            </div>
+            <div className="fin-kpi">
+              <div className="fin-kpi-label">Settled</div>
+              <div className="fin-kpi-val" style={{color:"var(--b)"}}>{ils(totalSettledILS)}</div>
+              <div className="fin-kpi-sub">{pct}% of total · {settled.length} items</div>
+            </div>
+            <div className="fin-kpi">
+              <div className="fin-kpi-label">Still Pending</div>
+              <div className="fin-kpi-val vam">{ils(totalPendingILS)}</div>
+              <div className="fin-kpi-sub">{pending.length} items outstanding</div>
+            </div>
+          </div>
+
+          {/* Progress bar */}
+          <div className="card" style={{marginBottom:12}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+              <div className="card-title" style={{marginBottom:0}}>Budget Progress</div>
+              <span style={{fontSize:11,color:"var(--t2)"}}>{pct}% settled</span>
+            </div>
+            <div className="pbar" style={{height:8}}><div className="pfill b" style={{width:pct+"%"}}/></div>
+            <div style={{display:"flex",justifyContent:"space-between",marginTop:6,fontSize:10,color:"var(--t2)"}}>
+              <span>₪0</span>
+              <span>{ils(totalSettledILS)} settled</span>
+              <span>{ils(totalEstILS)}</span>
+            </div>
+          </div>
+
+          {/* By Plan bar chart */}
+          {byPlan.length>0 && <div className="card" style={{marginBottom:12}}>
+            <div className="card-title">Settled by Plan</div>
+            <div className="bar-chart">
+              {byPlan.map(({plan,ils:amount,count})=>(
+                <div key={plan.id} className="bar-row">
+                  <div className="bar-label">{plan.icon} {plan.title}</div>
+                  <div className="bar-track">
+                    <div className="bar-fill" style={{width:`${amount/maxPlanILS*100}%`,background:plan.color}}/>
+                  </div>
+                  <div className="bar-val">{fmt(amount,"ILS")}</div>
+                </div>
+              ))}
+            </div>
+          </div>}
+
+          {/* Pending by Plan */}
+          {(() => {
+            const pendByPlan = plans.map(p=>{
+              const pi = pending.filter(a=>a.planId===p.id);
+              return {plan:p, ils:pi.reduce((s,a)=>s+totalCostILS(a,rates),0), count:pi.length};
+            }).filter(x=>x.ils>0).sort((a,b)=>b.ils-a.ils);
+            const maxPend = pendByPlan[0]?.ils||1;
+            return pendByPlan.length>0 ? (
+              <div className="card" style={{marginBottom:12}}>
+                <div className="card-title">Pending by Plan</div>
+                <div className="bar-chart">
+                  {pendByPlan.map(({plan,ils:amount})=>(
+                    <div key={plan.id} className="bar-row">
+                      <div className="bar-label">{plan.icon} {plan.title}</div>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{width:`${amount/maxPend*100}%`,background:"var(--am)"}}/>
+                      </div>
+                      <div className="bar-val">{fmt(amount,"ILS")}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Monthly timeline */}
+          {monthList.length>0 ? (
+            <div className="card">
+              <div className="card-title">Monthly Spend Timeline</div>
+              <div className="timeline-grid">
+                {monthList.map(m=>{
+                  const h = Math.max(4,Math.round(m.ils/maxMonthILS*56));
+                  const isNow = m.key===`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
+                  return(
+                    <div key={m.key} className={`month-col ${isNow?"active":""}`}>
+                      <div className="month-name">{m.label}</div>
+                      <div className="month-bar-wrap">
+                        <div className="month-bar" style={{height:h,background:isNow?"var(--g)":"var(--b)"}}/>
+                      </div>
+                      <div className="month-amt">{fmt(m.ils,"ILS")}</div>
+                      <div className="month-count">{m.count} item{m.count!==1?"s":""}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            <div className="card" style={{textAlign:"center",padding:"24px",color:"var(--t2)"}}>
+              <div style={{fontSize:24,marginBottom:8}}>📊</div>
+              <div style={{fontSize:13,fontWeight:600}}>No settled expenses yet</div>
+              <div style={{fontSize:11,marginTop:4}}>Mark items as Settled with a date to see your spending timeline</div>
+            </div>
+          )}
+        </>}
+
+        {tab==="settled" && <>
+          <div style={{marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontSize:12,color:"var(--t1)"}}>{settled.length} settled · {ils(totalSettledILS)} total</div>
+          </div>
+          {settled.length===0 && <div style={{color:"var(--t2)",textAlign:"center",padding:"32px 0"}}>No settled expenses yet</div>}
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            {settled.sort((a,b)=>new Date(b.settledDate)-new Date(a.settledDate)).map(a=>{
+              const plan = plans.find(p=>p.id===a.planId);
+              return(
+                <div key={a.id} className="settled-row" style={{padding:"10px 14px"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,fontSize:13}}>{a.title}</div>
+                    <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                      {plan&&<span style={{fontSize:9,color:plan.color,fontWeight:700,textTransform:"uppercase"}}>{plan.icon} {plan.title}</span>}
+                      <span style={{fontSize:11,color:"var(--t2)"}}>📅 {a.settledDate}</span>
+                      {a.vendor&&<span style={{fontSize:11,color:"var(--t2)"}}>🏢 {a.vendor}</span>}
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"var(--g)"}}>{ils(totalCostILS(a,rates))}</div>
+                    <button className="btn btn-s btn-xs" style={{marginTop:4}} onClick={()=>onEdit(a)}>Edit</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>}
+
+        {tab==="upcoming" && <>
+          <div style={{marginBottom:12,fontSize:12,color:"var(--t1)"}}>
+            {upcoming.length} expenses due in next 60 days · {ils(upcoming.reduce((s,a)=>s+totalCostILS(a,rates),0))} total
+          </div>
+          {upcoming.length===0 && <div style={{color:"var(--t2)",textAlign:"center",padding:"32px 0"}}>No upcoming expenses in the next 60 days 🎉</div>}
+          <div className="card" style={{padding:0,overflow:"hidden"}}>
+            {upcoming.map(a=>{
+              const plan = plans.find(p=>p.id===a.planId);
+              const daysLeft = Math.ceil((new Date(a.ddate)-now)/86400000);
+              const urgent = daysLeft<=14;
+              return(
+                <div key={a.id} className="upcoming-row" style={{padding:"10px 14px"}}>
+                  <div style={{flex:1}}>
+                    <div style={{fontWeight:600,fontSize:13}}>{a.title}</div>
+                    <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                      {plan&&<span style={{fontSize:9,color:plan.color,fontWeight:700,textTransform:"uppercase"}}>{plan.icon} {plan.title}</span>}
+                      <span style={{fontSize:11,color:urgent?"var(--re)":"var(--t2)"}}>📅 {a.ddate} {urgent?`(${daysLeft}d)`:""}</span>
+                      <span className={`tag ${prCls(a.priority)}`}>{a.priority}</span>
+                    </div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"var(--am)"}}>{ils(totalCostILS(a,rates))}</div>
+                    <button className="btn btn-g btn-xs" style={{marginTop:4}} onClick={()=>onEdit(a)}>Settle</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </>}
+
+      </div>
+    </>
+  );
+}
+
+
 function FlightPanel(){
   return(
     <div className="flight-panel">
@@ -1482,6 +1738,16 @@ function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
               {["tbd","in progress","irrelevant","done"].map(s=><option key={s}>{s}</option>)}
             </select>
           </div>
+          {(f.cost||f.cost2) && <>
+            <div className="fcol" style={{display:"flex",alignItems:"center",gap:10,paddingTop:6}}>
+              <input type="checkbox" id="settled-cb" style={{width:16,height:16,accentColor:"var(--g)",cursor:"pointer"}} checked={!!f.settled} onChange={e=>sf("settled",e.target.checked)}/>
+              <label htmlFor="settled-cb" style={{fontSize:12,fontWeight:600,color:f.settled?"var(--g)":"var(--t1)",cursor:"pointer"}}>✅ Settled (paid)</label>
+            </div>
+            <div className="fcol">
+              <div className="flabel">Settlement Date {f.settled&&<span style={{color:"var(--re)"}}>*</span>}</div>
+              <input type="date" className="finput" value={f.settledDate||""} onChange={e=>sf("settledDate",e.target.value)} style={{borderColor:f.settled&&!f.settledDate?"var(--re)":""}}/>
+            </div>
+          </>}
         </div>
 
         {/* ADVANCED EXPAND */}
@@ -1544,7 +1810,10 @@ function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
 
         <div className="modal-footer">
           <button className="btn btn-s" onClick={onClose}>Cancel</button>
-          <button className="btn btn-g" onClick={()=>onSave(f)}>Save Item</button>
+          <button className="btn btn-g" onClick={()=>{
+            if(f.settled&&!f.settledDate){alert("Please enter a settlement date");return;}
+            onSave(f);
+          }}>Save Item</button>
         </div>
       </div>
     </div>
