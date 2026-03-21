@@ -270,6 +270,37 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
   .bar-val{width:60px;font-size:10px;}
 }
 
+/* ── AI ADVISOR ── */
+.chat-wrap{display:flex;flex-direction:column;height:100%;overflow:hidden;}
+.chat-messages{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:12px;}
+.chat-input-bar{padding:10px 14px;background:var(--s0);border-top:1px solid var(--bd);display:flex;gap:8px;align-items:flex-end;flex-shrink:0;}
+.chat-textarea{flex:1;background:var(--s2);border:1px solid var(--bd);color:var(--t0);padding:10px 12px;border-radius:12px;font-size:13px;font-family:var(--fb);resize:none;max-height:100px;min-height:42px;transition:border-color .13s;line-height:1.4;}
+.chat-textarea:focus{outline:none;border-color:var(--g);}
+.chat-textarea::placeholder{color:var(--t3);}
+.chat-send{background:var(--g);color:#080d1a;border:none;border-radius:10px;width:42px;height:42px;font-size:18px;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .13s;}
+.chat-send:disabled{background:var(--s3);color:var(--t3);cursor:not-allowed;}
+.chat-send:not(:disabled):hover{background:#00c49a;}
+.msg{display:flex;flex-direction:column;gap:4px;max-width:88%;}
+.msg.user{align-self:flex-end;align-items:flex-end;}
+.msg.ai{align-self:flex-start;align-items:flex-start;}
+.msg-bubble{padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.55;white-space:pre-wrap;}
+.msg.user .msg-bubble{background:var(--g);color:#080d1a;border-radius:16px 16px 4px 16px;}
+.msg.ai .msg-bubble{background:var(--s1);border:1px solid var(--bd);color:var(--t0);border-radius:16px 16px 16px 4px;}
+.msg-time{font-size:9px;color:var(--t3);}
+.suggestions-wrap{display:flex;flex-direction:column;gap:6px;margin-top:8px;max-width:360px;}
+.suggestion-card{background:var(--s2);border:1px solid var(--bd2);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;transition:all .13s;}
+.suggestion-card:hover{border-color:var(--g);background:var(--g3);}
+.suggestion-card-info{flex:1;}
+.suggestion-card-title{font-size:12px;font-weight:600;color:var(--t0);}
+.suggestion-card-meta{font-size:10px;color:var(--t2);margin-top:2px;}
+.suggestion-add-btn{background:var(--g);color:#080d1a;border:none;border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.suggestion-add-btn:disabled{background:var(--s3);color:var(--t3);cursor:default;}
+.chat-thinking{display:flex;gap:4px;align-items:center;padding:10px 14px;background:var(--s1);border:1px solid var(--bd);border-radius:16px;width:fit-content;}
+.chat-dot{width:6px;height:6px;border-radius:50%;background:var(--t2);animation:dotpulse 1.2s infinite;}
+.chat-dot:nth-child(2){animation-delay:.2s;}
+.chat-dot:nth-child(3){animation-delay:.4s;}
+@keyframes dotpulse{0%,80%,100%{opacity:.3;transform:scale(.8);}40%{opacity:1;transform:scale(1);}}
+
 .divider{height:1px;background:var(--bd);margin:12px 0;}
 
 /* ── FILTER BAR ── */
@@ -694,6 +725,7 @@ export default function App(){
     {id:"today",ic:"🏠",lbl:"Today"},
     {id:"plan",ic:"⚡",lbl:"Plan"},
     {id:"finance",ic:"💰",lbl:"Finance"},
+    {id:"advisor",ic:"🤖",lbl:"Advisor"},
     {id:"vault",ic:"🗂️",lbl:"Vault"},
     {id:"settings",ic:"⚙️",lbl:"Settings"},
   ];
@@ -740,6 +772,7 @@ export default function App(){
           {page==="today" && <TodayPage items={items} plans={plans} phdDone={phdDone} tick={tick} cur={cur} rates={rates} fmtC={fmtC} totEst={totEst} totPaid={totPaid} overdue={overdue} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} cycleStatus={cycleStatus} setPage={setPage}/>}
           {page==="plan"  && <PlanPage items={items} plans={plans} setPlans={setPlans} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} onDelete={deleteItem} cycleStatus={cycleStatus} T={T}/>}
           {page==="finance" && <FinancePage items={items} plans={plans} rates={rates} onEdit={a=>setModal({type:"item",a})} setItems={setItems} T={T}/>}
+          {page==="advisor" && <AdvisorPage items={items} plans={plans} rates={rates} onAddItem={a=>{setItems(prev=>[...prev,{...a,id:"a"+Date.now(),subs:[]}]);T("Item added to "+plans.find(p=>p.id===a.planId)?.title+" ✓");}}/>}
           {page==="vault" && <VaultPage items={items} docs={docs} setDocs={setDocs} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
           {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates} items={items} setItems={setItems} plans={plans} setPlans={setPlans}/>}
 
@@ -1651,6 +1684,199 @@ function FinancePage({items,plans,rates,onEdit,setItems,T}){
   );
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// AI ADVISOR PAGE
+// ─────────────────────────────────────────────────────────────────────────────
+function AdvisorPage({items,plans,rates,onAddItem}){
+  const [messages,setMessages] = useState([
+    {role:"ai",text:"Hi! I'm your Perth Relocation Advisor 🇦🇺\n\nI have full context of your plans, items, budget and timeline. Ask me anything — from visa questions to Perth suburb recommendations to what you should be doing right now.\n\nI can also suggest new items to add directly to your plan.",time:new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"}),suggestions:[]}
+  ]);
+  const [input,setInput] = useState("");
+  const [loading,setLoading] = useState(false);
+  const [added,setAdded] = useState({});
+  const bottomRef = React.useRef(null);
+
+  React.useEffect(()=>{
+    bottomRef.current?.scrollIntoView({behavior:"smooth"});
+  },[messages,loading]);
+
+  const buildContext = () => {
+    const now = new Date();
+    const phdStart = new Date("2026-07-20");
+    const daysLeft = Math.ceil((phdStart-now)/86400000);
+    const overdue = items.filter(a=>a.ddate&&new Date(a.ddate)<now&&a.status!=="done");
+    const inProgress = items.filter(a=>a.status==="in progress");
+    const done = items.filter(a=>a.status==="done");
+    const tbd = items.filter(a=>a.status==="tbd");
+    const totalILS = items.reduce((s,a)=>s+totalCostILS(a,rates),0);
+    const settledILS = items.filter(a=>a.settled).reduce((s,a)=>s+totalCostILS(a,rates),0);
+
+    const planSummary = plans.map(p=>{
+      const pi = items.filter(i=>i.planId===p.id);
+      const doneC = pi.filter(i=>i.status==="done").length;
+      return `  ${p.icon} ${p.title}: ${doneC}/${pi.length} done`;
+    }).join("\n");
+
+    const overdueList = overdue.map(a=>`  - ${a.title} (due ${a.ddate})`).join("\n")||"  None";
+    const inProgressList = inProgress.map(a=>`  - ${a.title}`).join("\n")||"  None";
+
+    return `You are a relocation advisor for an Israeli family moving from Tel Aviv to Perth, Australia.
+
+FAMILY PROFILE:
+- Raz (Dad) + Shahar (Mom) + 2 kids
+- Moving for Raz's PhD at University of Western Australia (UWA)
+- PhD starts: July 20, 2026 (${daysLeft} days from today)
+- Today: ${now.toLocaleDateString("en-AU",{weekday:"long",year:"numeric",month:"long",day:"numeric"})}
+
+CURRENT STATUS:
+- Items: ${items.length} total — ${done.length} done, ${inProgress.length} in progress, ${tbd.length} tbd
+- Overdue: ${overdue.length}
+- Budget: ₪${Math.round(totalILS).toLocaleString()} estimated, ₪${Math.round(settledILS).toLocaleString()} settled
+- Rates: 1 AUD = ₪${rates.AUD}, 1 USD = ₪${rates.USD}
+
+PLAN PROGRESS:
+${planSummary}
+
+OVERDUE:
+${overdueList}
+
+IN PROGRESS:
+${inProgressList}
+
+ALL ITEMS:
+${items.map(a=>{
+  const p=plans.find(pl=>pl.id===a.planId);
+  const cost=totalCostILS(a,rates);
+  return `  [${a.id}] ${p?.title||"?"} | ${a.title} | ${a.status} | ${a.priority} | due:${a.ddate||"-"} | ${cost>0?"₪"+Math.round(cost).toLocaleString():""}`;
+}).join("\n")}
+
+AVAILABLE PLANS (for suggestions):
+${plans.map(p=>`  ${p.id}: ${p.icon} ${p.title}`).join("\n")}
+
+INSTRUCTIONS:
+- Give specific, actionable advice referencing their actual data
+- Use web_search for current info (visa times, rental prices, flights, etc.)
+- At the end of your response, if there are 1-3 genuinely useful items to add, include exactly this on its own line:
+SUGGESTIONS:{"items":[{"planId":"p2","title":"Task title","desc":"Why this matters","priority":"High","phase":"Month -3","owner":"Raz"}]}
+- Only suggest items not already in the plan
+- Be warm, direct, concise — like a trusted advisor`;
+  };
+
+  const send = async () => {
+    const text = input.trim();
+    if(!text||loading) return;
+    setInput("");
+    const userMsg = {role:"user",text,time:new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"})};
+    const history = [...messages, userMsg];
+    setMessages(history);
+    setLoading(true);
+
+    try{
+      const apiMessages = history
+        .filter((m,i)=>i>0)
+        .map(m=>({role:m.role==="user"?"user":"assistant",content:m.text}));
+
+      const res = await fetch("https://api.anthropic.com/v1/messages",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({
+          model:"claude-sonnet-4-20250514",
+          max_tokens:1000,
+          system:buildContext(),
+          tools:[{type:"web_search_20250305",name:"web_search"}],
+          messages:apiMessages
+        })
+      });
+
+      if(!res.ok) throw new Error(`${res.status}`);
+      const data = await res.json();
+
+      const fullText = (data.content||[]).filter(b=>b.type==="text").map(b=>b.text).join("");
+
+      let suggestions=[], displayText=fullText;
+      const sugMatch = fullText.match(/SUGGESTIONS:(\{[\s\S]*?\})\s*$/);
+      if(sugMatch){
+        try{
+          suggestions = JSON.parse(sugMatch[1]).items||[];
+          displayText = fullText.replace(/SUGGESTIONS:[\s\S]*$/,"").trim();
+        }catch(e){}
+      }
+
+      setMessages(prev=>[...prev,{role:"ai",text:displayText,time:new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"}),suggestions}]);
+    }catch(e){
+      setMessages(prev=>[...prev,{role:"ai",text:"Sorry, couldn't connect. Please try again.",time:new Date().toLocaleTimeString("en-AU",{hour:"2-digit",minute:"2-digit"}),suggestions:[]}]);
+    }
+    setLoading(false);
+  };
+
+  const PROMPTS=["What should I focus on this week?","Am I on track for July 20?","What's the visa timeline?","Best suburbs near UWA?","How much should I budget for Perth?"];
+
+  return(
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+      <div className="page-header" style={{flexShrink:0}}>
+        <div className="page-title">AI Advisor 🤖</div>
+        <div className="page-sub">Knows your full plan · searches the web · suggests items</div>
+      </div>
+
+      <div className="chat-messages">
+        {messages.length===1&&(
+          <div style={{display:"flex",flexWrap:"wrap",gap:6,paddingBottom:4}}>
+            {PROMPTS.map(p=>(
+              <button key={p} onClick={()=>setInput(p)} style={{background:"var(--s2)",border:"1px solid var(--bd)",color:"var(--t1)",padding:"6px 12px",borderRadius:20,fontSize:11,cursor:"pointer",fontFamily:"var(--fb)"}}>
+                {p}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {messages.map((m,i)=>(
+          <div key={i} className={`msg ${m.role}`}>
+            <div className="msg-bubble">{m.text}</div>
+            {m.suggestions?.length>0&&(
+              <div className="suggestions-wrap">
+                <div style={{fontSize:10,color:"var(--t2)",textTransform:"uppercase",letterSpacing:"1px",marginBottom:4}}>💡 Suggested items</div>
+                {m.suggestions.map((s,si)=>{
+                  const key=`${i}-${si}`;
+                  const plan=plans.find(p=>p.id===s.planId);
+                  return(
+                    <div key={si} className="suggestion-card">
+                      <div className="suggestion-card-info">
+                        <div className="suggestion-card-title">{s.title}</div>
+                        <div className="suggestion-card-meta">{plan&&`${plan.icon} ${plan.title}`}{s.priority&&` · ${s.priority}`}{s.phase&&` · ${s.phase}`}</div>
+                        {s.desc&&<div style={{fontSize:10,color:"var(--t1)",marginTop:3}}>{s.desc}</div>}
+                      </div>
+                      <button className="suggestion-add-btn" disabled={!!added[key]} onClick={()=>{
+                        onAddItem({planId:s.planId||plans[0]?.id,title:s.title,desc:s.desc||"",owner:s.owner||"Both",priority:s.priority||"Medium",status:"tbd",phase:s.phase||"Month -3",ddate:"",cost:"",cur:"ILS",cost2:"",cur2:"AUD",vendor:"",comments:"",subs:[]});
+                        setAdded(a=>({...a,[key]:true}));
+                      }}>
+                        {added[key]?"✓ Added":"+ Add"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+            <div className="msg-time">{m.time}</div>
+          </div>
+        ))}
+
+        {loading&&(
+          <div className="msg ai">
+            <div className="chat-thinking">
+              <div className="chat-dot"/><div className="chat-dot"/><div className="chat-dot"/>
+            </div>
+          </div>
+        )}
+        <div ref={bottomRef}/>
+      </div>
+
+      <div className="chat-input-bar">
+        <textarea className="chat-textarea" placeholder="Ask anything about your relocation…" value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send();}}} rows={1}/>
+        <button className="chat-send" onClick={send} disabled={!input.trim()||loading}>{loading?"⏳":"➤"}</button>
+      </div>
+    </div>
+  );
+}
 
 function FlightPanel(){
   return(
