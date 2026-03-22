@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"; // v3 — live rates + flight panel
+import React, { useState, useEffect, useRef } from "react"; // v3 — live rates + flight panel
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const CSS = `
@@ -1694,9 +1694,9 @@ function AdvisorPage({items,plans,rates,onAddItem}){
   const [input,setInput] = useState("");
   const [loading,setLoading] = useState(false);
   const [added,setAdded] = useState({});
-  const bottomRef = React.useRef(null);
+  const bottomRef = useRef(null);
 
-  React.useEffect(()=>{
+  useEffect(()=>{
     bottomRef.current?.scrollIntoView({behavior:"smooth"});
   },[messages,loading]);
 
