@@ -89,6 +89,7 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
 .ava-R{background:rgba(0,212,170,.18);color:var(--g);}
 .ava-S{background:rgba(59,130,246,.18);color:var(--b);}
 .ava-K{background:rgba(245,158,11,.18);color:var(--am);}
+.ava-B{background:rgba(139,92,246,.18);color:#a78bfa;}
 .ava-E{background:rgba(74,96,128,.2);color:var(--t2);}
 
 /* ── ACTION CARDS ── */
@@ -320,7 +321,7 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
 @media(max-width:820px){
   .sidebar{display:none;}
   .app{flex-direction:column;}
-  .main{padding-bottom:68px;}
+  .main{padding-bottom:58px;}
   .page-body{padding:14px 14px 20px;}
   .page-header{padding:14px 14px 0;}
   .page-title{font-size:19px;}
@@ -362,31 +363,32 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
   position:fixed;bottom:0;left:0;right:0;
   background:var(--s0);
   border-top:1px solid var(--bd);
-  height:60px;
+  height:58px;
   padding-bottom:env(safe-area-inset-bottom);
   z-index:100;
   box-shadow:0 -4px 20px rgba(0,0,0,.3);
 }
 .mobile-nav-inner{
   display:flex;
-  height:60px;
+  height:58px;
   align-items:center;
   justify-content:space-around;
-  padding:0 8px;
+  padding:0 2px;
 }
 .mob-nav-item{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:2px;padding:6px 18px;border-radius:12px;cursor:pointer;
-  min-width:56px;position:relative;transition:all .13s;
+  gap:2px;padding:4px 8px;border-radius:10px;cursor:pointer;
+  min-width:44px;flex:1;position:relative;transition:all .13s;
   -webkit-tap-highlight-color:transparent;
 }
 .mob-nav-item.active{background:var(--g2);}
-.mob-nav-item .mob-ic{font-size:19px;line-height:1;}
-.mob-nav-item .mob-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--t2);}
+.mob-nav-item .mob-ic{font-size:17px;line-height:1;}
+.mob-nav-item .mob-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--t2);}
 .mob-nav-item.active .mob-lbl{color:var(--g);}
-.mob-nav-badge{position:absolute;top:4px;right:10px;background:var(--re);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;}
+.mob-nav-badge{position:absolute;top:2px;right:4px;background:var(--re);color:#fff;font-size:8px;font-weight:700;padding:1px 4px;border-radius:10px;}
 @media(max-width:820px){
   .mobile-nav{display:block;}
+  .main{padding-bottom:58px;}
 }
 
 /* ── MOBILE CURRENCY BAR ── */
@@ -1812,13 +1814,13 @@ SUGGESTIONS:{"items":[{"planId":"p2","title":"Task title","desc":"Why this matte
   const PROMPTS=["What should I focus on this week?","Am I on track for July 20?","What's the visa timeline?","Best suburbs near UWA?","How much should I budget for Perth?"];
 
   return(
-    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden"}}>
+    <div style={{display:"flex",flexDirection:"column",height:"100%",overflow:"hidden",minHeight:0}}>
       <div className="page-header" style={{flexShrink:0}}>
         <div className="page-title">AI Advisor 🤖</div>
         <div className="page-sub">Knows your full plan · searches the web · suggests items</div>
       </div>
 
-      <div className="chat-messages">
+      <div className="chat-messages" style={{flex:1,minHeight:0}}>
         {messages.length===1&&(
           <div style={{display:"flex",flexWrap:"wrap",gap:6,paddingBottom:4}}>
             {PROMPTS.map(p=>(
