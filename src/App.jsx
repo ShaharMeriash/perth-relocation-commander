@@ -224,6 +224,8 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
 .doc-row{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--bd);transition:background .1s;}
 .doc-row:hover{background:var(--s1);}
 .doc-row:last-child{border-bottom:none;}
+.drive-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#1a73e8;color:#fff;text-decoration:none;border:none;cursor:pointer;transition:opacity .13s;white-space:nowrap;}
+.drive-btn:hover{opacity:.85;}
 
 /* ── SHOPPING ── */
 .shop-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);}
@@ -1291,37 +1293,56 @@ function BudgetTab({items,rates,cur,fmtC,shopTot,T}){
   );
 }
 
+const DOC_STATUSES = ["pending","collected","submitted","approved","expired"];
+const DOC_STATUS_CLS = {pending:"tam",collected:"tg",submitted:"tb",approved:"tg",expired:"tr"};
+const DOC_STATUS_LABEL = {pending:"Pending",collected:"Collected",submitted:"Submitted",approved:"Approved",expired:"Expired"};
+
 function DocumentsTab({docs,setDocs,items,T}){
   const [mo,setMo] = useState(false);
-  const [f,setF] = useState({id:"",type:"",exp:"",aid:"",notes:""});
+  const [f,setF] = useState({id:"",type:"",status:"pending",exp:"",aid:"",driveUrl:"",notes:""});
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
+  const blank=()=>setF({id:"",type:"",status:"pending",exp:"",aid:"",driveUrl:"",notes:""});
   const save=()=>{
     if(!f.type.trim()){T("Document type required","err");return;}
     setDocs(prev=>f.id?prev.map(d=>d.id===f.id?f:d):[...prev,{...f,id:"d"+Date.now()}]);
     setMo(false);T("Saved ✓");
   };
   const soonDate = new Date(Date.now()+365*86400000);
+  const collected = docs.filter(d=>d.status==="collected"||d.status==="submitted"||d.status==="approved").length;
+  const pending = docs.filter(d=>!d.status||d.status==="pending").length;
   return(
     <>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{fontSize:12,color:"var(--t1)"}}>{docs.length} documents · {docs.filter(d=>d.exp&&new Date(d.exp)<soonDate).length} expiring within a year</div>
-        <button className="btn btn-g btn-sm" onClick={()=>{setF({id:"",type:"",exp:"",aid:"",notes:""});setMo(true);}}>+ Add Document</button>
+        <div style={{display:"flex",gap:16}}>
+          <span style={{fontSize:12,color:"var(--t1)"}}>{docs.length} total</span>
+          <span style={{fontSize:12,color:"var(--g)"}}>✓ {collected} collected</span>
+          <span style={{fontSize:12,color:"var(--am)"}}>{pending} pending</span>
+          {docs.filter(d=>d.exp&&new Date(d.exp)<soonDate).length>0&&
+            <span style={{fontSize:12,color:"var(--am)"}}>⚠️ {docs.filter(d=>d.exp&&new Date(d.exp)<soonDate).length} expiring soon</span>}
+        </div>
+        <button className="btn btn-g btn-sm" onClick={()=>{blank();setMo(true);}}>+ Add Document</button>
       </div>
       <div className="card" style={{padding:0,overflow:"hidden"}}>
         {docs.map(d=>{
           const expiring=d.exp&&new Date(d.exp)<soonDate;
+          const stCls=DOC_STATUS_CLS[d.status||"pending"]||"tam";
+          const stLbl=DOC_STATUS_LABEL[d.status||"pending"]||"Pending";
           return(
             <div key={d.id} className="doc-row">
-              <div>
-                <div style={{fontWeight:600,fontSize:13}}>{d.type}</div>
-                <div style={{display:"flex",gap:10,marginTop:3,flexWrap:"wrap"}}>
+              <div style={{flex:1,minWidth:0}}>
+                <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                  <span style={{fontWeight:600,fontSize:13}}>{d.type}</span>
+                  <span className={`tag ${stCls}`}>{stLbl}</span>
+                  {d.driveUrl&&<a className="drive-btn" href={d.driveUrl} target="_blank" rel="noopener noreferrer">📂 Drive</a>}
+                </div>
+                <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
                   {d.exp&&<span style={{fontSize:11,color:expiring?"var(--am)":"var(--t2)"}}>Expires {d.exp}{expiring?" ⚠️":""}</span>}
                   {d.aid&&<span style={{fontSize:11,color:"var(--t2)"}}>🔗 {items.find(a=>a.id===d.aid)?.title||d.aid}</span>}
                   {d.notes&&<span style={{fontSize:11,color:"var(--t1)"}}>{d.notes}</span>}
                 </div>
               </div>
-              <div style={{display:"flex",gap:6}}>
-                <button className="btn btn-s btn-sm" onClick={()=>{setF(d);setMo(true);}}>Edit</button>
+              <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:10}}>
+                <button className="btn btn-s btn-sm" onClick={()=>{setF({driveUrl:"",status:"pending",...d});setMo(true);}}>Edit</button>
                 <button className="btn btn-d btn-sm" onClick={()=>setDocs(p=>p.filter(x=>x.id!==d.id))}>✕</button>
               </div>
             </div>
@@ -1332,9 +1353,17 @@ function DocumentsTab({docs,setDocs,items,T}){
         <div className="modal">
           <div className="modal-title">{f.id?"Edit":"Add"} Document</div>
           <div className="fg1">
-            <div className="fcol"><div className="flabel">Document Type *</div><input className="finput" value={f.type} onChange={e=>sf("type",e.target.value)}/></div>
-            <div className="fcol"><div className="flabel">Expiry Date</div><input type="date" className="finput" value={f.exp} onChange={e=>sf("exp",e.target.value)}/></div>
-            <div className="fcol"><div className="flabel">Linked Item</div><select className="fselect" value={f.aid} onChange={e=>sf("aid",e.target.value)}><option value="">None</option>{items.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></div>
+            <div className="fg">
+              <div className="fcol span2"><div className="flabel">Document Type *</div><input className="finput" value={f.type} onChange={e=>sf("type",e.target.value)}/></div>
+              <div className="fcol"><div className="flabel">Status</div>
+                <select className="fselect" value={f.status||"pending"} onChange={e=>sf("status",e.target.value)}>
+                  {DOC_STATUSES.map(s=><option key={s} value={s}>{DOC_STATUS_LABEL[s]}</option>)}
+                </select>
+              </div>
+              <div className="fcol"><div className="flabel">Expiry Date</div><input type="date" className="finput" value={f.exp} onChange={e=>sf("exp",e.target.value)}/></div>
+            </div>
+            <div className="fcol"><div className="flabel">Google Drive Link</div><input className="finput" placeholder="https://drive.google.com/…" value={f.driveUrl||""} onChange={e=>sf("driveUrl",e.target.value)}/></div>
+            <div className="fcol"><div className="flabel">Linked Action Item</div><select className="fselect" value={f.aid} onChange={e=>sf("aid",e.target.value)}><option value="">None</option>{items.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></div>
             <div className="fcol"><div className="flabel">Notes</div><textarea className="ftextarea" value={f.notes} onChange={e=>sf("notes",e.target.value)} rows={2}/></div>
           </div>
           <div className="modal-footer"><button className="btn btn-s" onClick={()=>setMo(false)}>Cancel</button><button className="btn btn-g" onClick={save}>Save</button></div>
