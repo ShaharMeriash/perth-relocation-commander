@@ -730,6 +730,7 @@ export default function App(){
     {id:"plan",ic:"⚡",lbl:"Plan"},
     {id:"finance",ic:"💰",lbl:"Finance"},
     {id:"advisor",ic:"🤖",lbl:"Advisor"},
+    {id:"docs",ic:"📂",lbl:"Docs"},
     {id:"vault",ic:"🗂️",lbl:"Vault"},
     {id:"settings",ic:"⚙️",lbl:"Settings"},
   ];
@@ -777,7 +778,8 @@ export default function App(){
           {page==="plan"  && <PlanPage items={items} plans={plans} setPlans={setPlans} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} onDelete={deleteItem} cycleStatus={cycleStatus} T={T}/>}
           {page==="finance" && <FinancePage items={items} plans={plans} rates={rates} onEdit={a=>setModal({type:"item",a})} setItems={setItems} T={T}/>}
           {page==="advisor" && <AdvisorPage items={items} plans={plans} rates={rates} onAddItem={a=>{setItems(prev=>[...prev,{...a,id:"a"+Date.now(),subs:[]}]);T("Item added to "+plans.find(p=>p.id===a.planId)?.title+" ✓");}}/>}
-          {page==="vault" && <VaultPage items={items} docs={docs} setDocs={setDocs} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
+          {page==="docs" && <DocsPage docs={docs} setDocs={setDocs} items={items} T={T}/>}
+          {page==="vault" && <VaultPage items={items} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
           {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates} items={items} setItems={setItems} plans={plans} setPlans={setPlans}/>}
 
           {/* RATES BAR */}
@@ -1224,23 +1226,36 @@ function JourneyTab({items,phdDone}){
 // ─────────────────────────────────────────────────────────────────────────────
 // VAULT PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function VaultPage({items,docs,setDocs,shop,setShop,rates,cur,fmtC,shopTot,T}){
+function DocsPage({docs,setDocs,items,T}){
+  return(
+    <>
+      <div className="page-header">
+        <div className="page-title">Documents 📂</div>
+        <div className="page-sub">Track, status & link files to Google Drive</div>
+      </div>
+      <div className="page-body">
+        <DocumentsTab docs={docs} setDocs={setDocs} items={items} T={T}/>
+      </div>
+    </>
+  );
+}
+
+function VaultPage({items,shop,setShop,rates,cur,fmtC,shopTot,T}){
   const [tab,setTab] = useState("budget");
   return(
     <>
       <div className="page-header">
         <div className="page-title">Vault 🗂️</div>
-        <div className="page-sub">Budget · Documents · Shopping</div>
+        <div className="page-sub">Budget · Shopping</div>
         <div className="tabs">
-          {[["budget","Budget"],["documents","Documents"],["shopping","Shopping"]].map(([id,lbl])=>(
+          {[["budget","Budget"],["shopping","Shopping"]].map(([id,lbl])=>(
             <button key={id} className={`tab ${tab===id?"on":""}`} onClick={()=>setTab(id)}>{lbl}</button>
           ))}
         </div>
       </div>
       <div className="page-body">
-        {tab==="budget"    && <BudgetTab items={items} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
-        {tab==="documents" && <DocumentsTab docs={docs} setDocs={setDocs} items={items} T={T}/>}
-        {tab==="shopping"  && <ShoppingTab shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} T={T}/>}
+        {tab==="budget"   && <BudgetTab items={items} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
+        {tab==="shopping" && <ShoppingTab shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} T={T}/>}
       </div>
     </>
   );
