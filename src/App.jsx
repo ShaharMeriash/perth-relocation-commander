@@ -226,6 +226,12 @@ html,body,#root{height:100%;background:var(--bg);color:var(--t0);font-family:var
 .doc-row:last-child{border-bottom:none;}
 .drive-btn{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:6px;font-size:10px;font-weight:700;background:#1a73e8;color:#fff;text-decoration:none;border:none;cursor:pointer;transition:opacity .13s;white-space:nowrap;}
 .drive-btn:hover{opacity:.85;}
+.upload-zone{border:2px dashed var(--bd2);border-radius:10px;padding:18px;text-align:center;cursor:pointer;transition:all .15s;background:var(--s2);}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--g);background:var(--g3);}
+.upload-zone input{display:none;}
+.upload-prog{height:6px;background:var(--s3);border-radius:3px;overflow:hidden;margin-top:8px;}
+.upload-prog-fill{height:100%;background:var(--g);border-radius:3px;transition:width .2s;}
+.drive-connect{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--s1);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px;}
 
 /* ── SHOPPING ── */
 .shop-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--bd);}
@@ -533,19 +539,19 @@ const SEED_ITEMS = [
   {id:"a22",planId:"p8", title:"Update AIR (Immunisation Register)", desc:"Translate kids' Pink Book and give to GP to upload to Medicare/AIR.", owner:"Shahar", priority:"High", status:"tbd", phase:"Month 0 Arrival", ddate:"2026-08-01", cost:"", cur:"AUD", cost2:"", cur2:"ILS", vendor:"Local GP", comments:"", subs:[]},
 ];
 const SEED_DOCS = [
-  {id:"d1",type:"Passport – Raz",exp:"2030-05-12",aid:"a2",notes:"Renew if <2yr validity past Jul 2026"},
-  {id:"d2",type:"Passport – Shahar",exp:"2029-11-08",aid:"a2",notes:""},
-  {id:"d3",type:"Passport – Child 1",exp:"2028-03-15",aid:"a2",notes:""},
-  {id:"d4",type:"Passport – Child 2",exp:"2027-09-22",aid:"a2",notes:""},
-  {id:"d5",type:"Marriage Certificate (Apostilled)",exp:"",aid:"a3",notes:""},
-  {id:"d6",type:"Birth Certificates x2 (Apostilled)",exp:"",aid:"a3",notes:""},
-  {id:"d7",type:"OSHC Insurance Certificate",exp:"",aid:"a6",notes:""},
-  {id:"d8",type:"Student Visa – Shahar (500)",exp:"",aid:"a6",notes:""},
-  {id:"d9",type:"Dependent Visa – Raz",exp:"",aid:"a6",notes:""},
-  {id:"d10",type:"Dependent Visas – Children x2",exp:"",aid:"a6",notes:""},
-  {id:"d11",type:"Entry/Exit Records (10 years)",exp:"",aid:"a4",notes:"From Israeli Population Authority"},
-  {id:"d12",type:"UWA Acceptance / CoE Letter",exp:"",aid:"a1",notes:"Required for TIWA fee waiver & visa"},
-  {id:"d13",type:"Hebrew–English Translations",exp:"",aid:"a3",notes:"NAATI certified translator"},
+  {id:"d1",type:"Passport – Raz",category:"Identity",exp:"2030-05-12",aid:"a2",notes:"Renew if <2yr validity past Jul 2026"},
+  {id:"d2",type:"Passport – Shahar",category:"Identity",exp:"2029-11-08",aid:"a2",notes:""},
+  {id:"d3",type:"Passport – Child 1",category:"Identity",exp:"2028-03-15",aid:"a2",notes:""},
+  {id:"d4",type:"Passport – Child 2",category:"Identity",exp:"2027-09-22",aid:"a2",notes:""},
+  {id:"d5",type:"Marriage Certificate (Apostilled)",category:"Legal",exp:"",aid:"a3",notes:""},
+  {id:"d6",type:"Birth Certificates x2 (Apostilled)",category:"Legal",exp:"",aid:"a3",notes:""},
+  {id:"d7",type:"OSHC Insurance Certificate",category:"Visa",exp:"",aid:"a6",notes:""},
+  {id:"d8",type:"Student Visa – Shahar (500)",category:"Visa",exp:"",aid:"a6",notes:""},
+  {id:"d9",type:"Dependent Visa – Raz",category:"Visa",exp:"",aid:"a6",notes:""},
+  {id:"d10",type:"Dependent Visas – Children x2",category:"Visa",exp:"",aid:"a6",notes:""},
+  {id:"d11",type:"Entry/Exit Records (10 years)",category:"Legal",exp:"",aid:"a4",notes:"From Israeli Population Authority"},
+  {id:"d12",type:"UWA Acceptance / CoE Letter",category:"Education",exp:"",aid:"a1",notes:"Required for TIWA fee waiver & visa"},
+  {id:"d13",type:"Hebrew–English Translations",category:"Legal",exp:"",aid:"a3",notes:"NAATI certified translator"},
 ];
 const SEED_SHOP = [
   // Appliances
@@ -617,6 +623,57 @@ function csvDl(data,name){
 }
 const STATUS_CYCLE = {tbd:"in progress","in progress":"done",done:"tbd",irrelevant:"tbd"};
 
+// ─── GOOGLE DRIVE ─────────────────────────────────────────────────────────────
+const DRIVE_ROOT = "1EHKk_Umg2xqxIDsgrGo9txE1p0kS93pT";
+const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive";
+
+function loadGIS(){
+  return new Promise(resolve=>{
+    if(window.google?.accounts?.oauth2) return resolve();
+    const s=document.createElement("script");
+    s.src="https://accounts.google.com/gsi/client";
+    s.onload=resolve;
+    document.head.appendChild(s);
+  });
+}
+async function driveReq(token,path,opts={}){
+  const res=await fetch(`https://www.googleapis.com/drive/v3/${path}`,{
+    ...opts,
+    headers:{Authorization:`Bearer ${token}`,..."Content-Type" in(opts.headers||{})?{}:{"Content-Type":"application/json"},...(opts.headers||{})}
+  });
+  if(!res.ok){const t=await res.text();throw new Error(`Drive ${res.status}: ${t}`);}
+  return res.json();
+}
+async function driveFindFolder(token,name,parentId){
+  const q=`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`;
+  const d=await driveReq(token,`files?q=${encodeURIComponent(q)}&fields=files(id,name)`);
+  return d.files?.[0]||null;
+}
+async function driveCreateFolder(token,name,parentId){
+  return driveReq(token,"files",{method:"POST",body:JSON.stringify({name,mimeType:"application/vnd.google-apps.folder",parents:[parentId]})});
+}
+async function driveEnsureFolder(token,name,parentId){
+  const ex=await driveFindFolder(token,name,parentId);
+  return ex||driveCreateFolder(token,name,parentId);
+}
+function driveUploadFile(token,file,folderId,onProgress){
+  return new Promise((resolve,reject)=>{
+    const boundary="prc_bound_9f3a";
+    const meta=JSON.stringify({name:file.name,parents:[folderId]});
+    const pre=`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: ${file.type||"application/octet-stream"}\r\n\r\n`;
+    const post=`\r\n--${boundary}--`;
+    const body=new Blob([pre,file,post]);
+    const xhr=new XMLHttpRequest();
+    xhr.open("POST","https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id,name,webViewLink");
+    xhr.setRequestHeader("Authorization",`Bearer ${token}`);
+    xhr.setRequestHeader("Content-Type",`multipart/related; boundary=${boundary}`);
+    xhr.upload.onprogress=e=>{if(e.lengthComputable)onProgress(Math.round(e.loaded/e.total*100));};
+    xhr.onload=()=>xhr.status<300?resolve(JSON.parse(xhr.responseText)):reject(new Error(`Upload ${xhr.status}: ${xhr.responseText}`));
+    xhr.onerror=()=>reject(new Error("Network error"));
+    xhr.send(body);
+  });
+}
+
 // ─── LOCALSTORAGE HOOK ────────────────────────────────────────────────────────
 function useLS(key, def){
   const [val,setVal] = useState(()=>{
@@ -628,6 +685,49 @@ function useLS(key, def){
     try{ window.localStorage.setItem(key,JSON.stringify(next)); }catch{}
   };
   return [val,set];
+}
+
+// ─── GOOGLE DRIVE HOOK ────────────────────────────────────────────────────────
+function useGoogleDrive(){
+  const [token,setToken] = useState(null);
+  const [expiry,setExpiry] = useState(0);
+  const [authLoading,setAuthLoading] = useState(false);
+  const clientRef = useRef(null);
+  const isAuthed = !!token && Date.now()<expiry;
+
+  const signIn = async () => {
+    setAuthLoading(true);
+    try{
+      await loadGIS();
+      const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+      if(!CLIENT_ID) throw new Error("VITE_GOOGLE_CLIENT_ID not set");
+      if(!clientRef.current){
+        clientRef.current = window.google.accounts.oauth2.initTokenClient({
+          client_id:CLIENT_ID,
+          scope:DRIVE_SCOPE,
+          callback:resp=>{
+            setAuthLoading(false);
+            if(resp.access_token){
+              setToken(resp.access_token);
+              setExpiry(Date.now()+(resp.expires_in-60)*1000);
+            } else setToken(null);
+          },
+          error_callback:()=>setAuthLoading(false)
+        });
+      }
+      clientRef.current.requestAccessToken({prompt:""});
+    }catch(e){
+      setAuthLoading(false);
+      throw e;
+    }
+  };
+
+  const signOut = () => {
+    if(token) window.google?.accounts?.oauth2?.revoke(token,()=>{});
+    setToken(null); setExpiry(0); clientRef.current=null;
+  };
+
+  return {token:isAuthed?token:null,isAuthed,signIn,signOut,authLoading};
 }
 
 // ─── PIE CHART ────────────────────────────────────────────────────────────────
@@ -1227,14 +1327,38 @@ function JourneyTab({items,phdDone}){
 // VAULT PAGE
 // ─────────────────────────────────────────────────────────────────────────────
 function DocsPage({docs,setDocs,items,T}){
+  const drive = useGoogleDrive();
+  const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   return(
     <>
       <div className="page-header">
         <div className="page-title">Documents 📂</div>
-        <div className="page-sub">Track, status & link files to Google Drive</div>
+        <div className="page-sub">Upload files directly to Google Drive · organised by category</div>
       </div>
       <div className="page-body">
-        <DocumentsTab docs={docs} setDocs={setDocs} items={items} T={T}/>
+        {!CLIENT_ID&&(
+          <div className="alert alert-w" style={{marginBottom:14}}>
+            ⚙️ Set <code>VITE_GOOGLE_CLIENT_ID</code> in Netlify environment variables to enable Drive uploads.
+          </div>
+        )}
+        {CLIENT_ID&&!drive.isAuthed&&(
+          <div className="drive-connect">
+            <div style={{flex:1}}>
+              <div style={{fontWeight:600,fontSize:13}}>Connect Google Drive</div>
+              <div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>Sign in once per session to upload files directly to your Drive folder</div>
+            </div>
+            <button className="btn btn-g btn-sm" onClick={()=>drive.signIn().catch(e=>T(e.message,"err"))} disabled={drive.authLoading}>
+              {drive.authLoading?"Connecting…":"Connect Drive"}
+            </button>
+          </div>
+        )}
+        {CLIENT_ID&&drive.isAuthed&&(
+          <div className="drive-connect" style={{background:"var(--g3)",borderColor:"rgba(0,212,170,.25)"}}>
+            <span style={{color:"var(--g)",fontSize:13}}>✓ Google Drive connected</span>
+            <button className="btn btn-s btn-xs" style={{marginLeft:"auto"}} onClick={drive.signOut}>Disconnect</button>
+          </div>
+        )}
+        <DocumentsTab docs={docs} setDocs={setDocs} items={items} T={T} drive={drive}/>
       </div>
     </>
   );
@@ -1312,19 +1436,52 @@ const DOC_STATUSES = ["pending","collected","submitted","approved","expired"];
 const DOC_STATUS_CLS = {pending:"tam",collected:"tg",submitted:"tb",approved:"tg",expired:"tr"};
 const DOC_STATUS_LABEL = {pending:"Pending",collected:"Collected",submitted:"Submitted",approved:"Approved",expired:"Expired"};
 
-function DocumentsTab({docs,setDocs,items,T}){
+function DocumentsTab({docs,setDocs,items,T,drive}){
+  const BLANK = {id:"",type:"",category:"",status:"pending",exp:"",aid:"",driveFileId:"",driveFileName:"",driveUrl:"",notes:""};
   const [mo,setMo] = useState(false);
-  const [f,setF] = useState({id:"",type:"",status:"pending",exp:"",aid:"",driveUrl:"",notes:""});
+  const [f,setF] = useState(BLANK);
+  const [pendingFile,setPendingFile] = useState(null);
+  const [uploadProg,setUploadProg] = useState(0);
+  const [uploading,setUploading] = useState(false);
+  const [drag,setDrag] = useState(false);
+  const fileRef = useRef();
+
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
-  const blank=()=>setF({id:"",type:"",status:"pending",exp:"",aid:"",driveUrl:"",notes:""});
-  const save=()=>{
+  const reset=()=>{setF(BLANK);setPendingFile(null);setUploadProg(0);};
+
+  const existingCats=[...new Set(docs.map(d=>d.category).filter(Boolean))];
+
+  const save=async()=>{
     if(!f.type.trim()){T("Document type required","err");return;}
-    setDocs(prev=>f.id?prev.map(d=>d.id===f.id?f:d):[...prev,{...f,id:"d"+Date.now()}]);
-    setMo(false);T("Saved ✓");
+    let doc={...f};
+    if(pendingFile){
+      if(!drive?.isAuthed){T("Connect Google Drive first","err");return;}
+      setUploading(true);
+      try{
+        const catName=f.category.trim()||"General";
+        const folder=await driveEnsureFolder(drive.token,catName,DRIVE_ROOT);
+        const uploaded=await driveUploadFile(drive.token,pendingFile,folder.id,setUploadProg);
+        doc={...doc,driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink};
+        T("Uploaded to Drive ✓");
+      }catch(e){
+        T("Upload failed: "+e.message,"err");
+        setUploading(false);
+        return;
+      }
+      setUploading(false);
+    }
+    setDocs(prev=>f.id?prev.map(d=>d.id===f.id?doc:d):[...prev,{...doc,id:"d"+Date.now()}]);
+    setMo(false);
+    if(!pendingFile) T("Saved ✓");
+    reset();
   };
-  const soonDate = new Date(Date.now()+365*86400000);
-  const collected = docs.filter(d=>d.status==="collected"||d.status==="submitted"||d.status==="approved").length;
-  const pending = docs.filter(d=>!d.status||d.status==="pending").length;
+
+  const onDrop=e=>{e.preventDefault();setDrag(false);const file=e.dataTransfer.files[0];if(file)setPendingFile(file);};
+
+  const soonDate=new Date(Date.now()+365*86400000);
+  const collected=docs.filter(d=>d.status==="collected"||d.status==="submitted"||d.status==="approved").length;
+  const pending=docs.filter(d=>!d.status||d.status==="pending").length;
+
   return(
     <>
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
@@ -1335,20 +1492,21 @@ function DocumentsTab({docs,setDocs,items,T}){
           {docs.filter(d=>d.exp&&new Date(d.exp)<soonDate).length>0&&
             <span style={{fontSize:12,color:"var(--am)"}}>⚠️ {docs.filter(d=>d.exp&&new Date(d.exp)<soonDate).length} expiring soon</span>}
         </div>
-        <button className="btn btn-g btn-sm" onClick={()=>{blank();setMo(true);}}>+ Add Document</button>
+        <button className="btn btn-g btn-sm" onClick={()=>{reset();setMo(true);}}>+ Add Document</button>
       </div>
       <div className="card" style={{padding:0,overflow:"hidden"}}>
         {docs.map(d=>{
           const expiring=d.exp&&new Date(d.exp)<soonDate;
-          const stCls=DOC_STATUS_CLS[d.status||"pending"]||"tam";
-          const stLbl=DOC_STATUS_LABEL[d.status||"pending"]||"Pending";
+          const sc=DOC_STATUS_CLS[d.status||"pending"]||"tam";
+          const sl=DOC_STATUS_LABEL[d.status||"pending"]||"Pending";
           return(
             <div key={d.id} className="doc-row">
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                   <span style={{fontWeight:600,fontSize:13}}>{d.type}</span>
-                  <span className={`tag ${stCls}`}>{stLbl}</span>
-                  {d.driveUrl&&<a className="drive-btn" href={d.driveUrl} target="_blank" rel="noopener noreferrer">📂 Drive</a>}
+                  <span className={`tag ${sc}`}>{sl}</span>
+                  {d.category&&<span className="tag t3">{d.category}</span>}
+                  {d.driveUrl&&<a className="drive-btn" href={d.driveUrl} target="_blank" rel="noopener noreferrer">📂 {d.driveFileName||"Drive"}</a>}
                 </div>
                 <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
                   {d.exp&&<span style={{fontSize:11,color:expiring?"var(--am)":"var(--t2)"}}>Expires {d.exp}{expiring?" ⚠️":""}</span>}
@@ -1357,31 +1515,83 @@ function DocumentsTab({docs,setDocs,items,T}){
                 </div>
               </div>
               <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:10}}>
-                <button className="btn btn-s btn-sm" onClick={()=>{setF({driveUrl:"",status:"pending",...d});setMo(true);}}>Edit</button>
+                <button className="btn btn-s btn-sm" onClick={()=>{setF({...BLANK,...d});setPendingFile(null);setMo(true);}}>Edit</button>
                 <button className="btn btn-d btn-sm" onClick={()=>setDocs(p=>p.filter(x=>x.id!==d.id))}>✕</button>
               </div>
             </div>
           );
         })}
+        {!docs.length&&<div style={{color:"var(--t2)",textAlign:"center",padding:"28px 0",fontSize:13}}>No documents yet — add one above</div>}
       </div>
-      {mo&&<div className="overlay" onClick={e=>e.target===e.currentTarget&&setMo(false)}>
+
+      {mo&&<div className="overlay" onClick={e=>e.target===e.currentTarget&&(setMo(false),reset())}>
         <div className="modal">
           <div className="modal-title">{f.id?"Edit":"Add"} Document</div>
           <div className="fg1">
             <div className="fg">
-              <div className="fcol span2"><div className="flabel">Document Type *</div><input className="finput" value={f.type} onChange={e=>sf("type",e.target.value)}/></div>
-              <div className="fcol"><div className="flabel">Status</div>
+              <div className="fcol span2">
+                <div className="flabel">Document Type *</div>
+                <input className="finput" value={f.type} onChange={e=>sf("type",e.target.value)} placeholder="e.g. Passport – Shahar"/>
+              </div>
+              <div className="fcol">
+                <div className="flabel">Category (Drive folder)</div>
+                <input className="finput" list="doc-cat-list" value={f.category} onChange={e=>sf("category",e.target.value)} placeholder="e.g. Visa, Legal…"/>
+                <datalist id="doc-cat-list">{existingCats.map(c=><option key={c} value={c}/>)}</datalist>
+              </div>
+              <div className="fcol">
+                <div className="flabel">Status</div>
                 <select className="fselect" value={f.status||"pending"} onChange={e=>sf("status",e.target.value)}>
                   {DOC_STATUSES.map(s=><option key={s} value={s}>{DOC_STATUS_LABEL[s]}</option>)}
                 </select>
               </div>
               <div className="fcol"><div className="flabel">Expiry Date</div><input type="date" className="finput" value={f.exp} onChange={e=>sf("exp",e.target.value)}/></div>
+              <div className="fcol"><div className="flabel">Linked Action Item</div>
+                <select className="fselect" value={f.aid} onChange={e=>sf("aid",e.target.value)}>
+                  <option value="">None</option>{items.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}
+                </select>
+              </div>
             </div>
-            <div className="fcol"><div className="flabel">Google Drive Link</div><input className="finput" placeholder="https://drive.google.com/…" value={f.driveUrl||""} onChange={e=>sf("driveUrl",e.target.value)}/></div>
-            <div className="fcol"><div className="flabel">Linked Action Item</div><select className="fselect" value={f.aid} onChange={e=>sf("aid",e.target.value)}><option value="">None</option>{items.map(a=><option key={a.id} value={a.id}>{a.title}</option>)}</select></div>
-            <div className="fcol"><div className="flabel">Notes</div><textarea className="ftextarea" value={f.notes} onChange={e=>sf("notes",e.target.value)} rows={2}/></div>
+
+            <div className="flabel" style={{marginTop:10,marginBottom:4}}>File · Upload to Google Drive</div>
+            {f.driveFileId&&!pendingFile?(
+              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"var(--g3)",border:"1px solid rgba(0,212,170,.25)",borderRadius:8,fontSize:12,marginBottom:4}}>
+                <span style={{color:"var(--g)"}}>📂</span>
+                <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{color:"var(--g)",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.driveFileName}</a>
+                <button className="btn btn-d btn-xs" onClick={()=>sf("driveFileId","")}>Replace</button>
+              </div>
+            ):(
+              <div
+                className={`upload-zone${drag?" drag":""}`}
+                onDragOver={e=>{e.preventDefault();setDrag(true);}}
+                onDragLeave={()=>setDrag(false)}
+                onDrop={onDrop}
+                onClick={()=>!uploading&&fileRef.current?.click()}
+              >
+                <input ref={fileRef} type="file" onChange={e=>{setPendingFile(e.target.files[0]||null);e.target.value="";}}/>
+                {pendingFile
+                  ?<div style={{fontSize:12,color:"var(--g)"}}>{pendingFile.name} <span style={{color:"var(--t2)"}}>({(pendingFile.size/1024).toFixed(0)} KB)</span>
+                    <span style={{marginLeft:8,color:"var(--t2)",cursor:"pointer"}} onClick={e=>{e.stopPropagation();setPendingFile(null);}}>✕</span>
+                   </div>
+                  :<div style={{fontSize:12,color:"var(--t2)"}}>Drop file here or <span style={{color:"var(--g)"}}>click to browse</span></div>
+                }
+                {uploading&&<div className="upload-prog"><div className="upload-prog-fill" style={{width:`${uploadProg}%`}}/></div>}
+              </div>
+            )}
+            {pendingFile&&!drive?.isAuthed&&(
+              <div style={{fontSize:11,color:"var(--am)",marginTop:4}}>⚠️ Connect Google Drive (top of page) to upload this file</div>
+            )}
+
+            <div className="fcol" style={{marginTop:8}}>
+              <div className="flabel">Notes</div>
+              <textarea className="ftextarea" value={f.notes} onChange={e=>sf("notes",e.target.value)} rows={2}/>
+            </div>
           </div>
-          <div className="modal-footer"><button className="btn btn-s" onClick={()=>setMo(false)}>Cancel</button><button className="btn btn-g" onClick={save}>Save</button></div>
+          <div className="modal-footer">
+            <button className="btn btn-s" onClick={()=>{setMo(false);reset();}}>Cancel</button>
+            <button className="btn btn-g" onClick={save} disabled={uploading}>
+              {uploading?`Uploading ${uploadProg}%…`:"Save"}
+            </button>
+          </div>
         </div>
       </div>}
     </>
