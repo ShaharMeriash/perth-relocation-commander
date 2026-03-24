@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef } from "react"; // v3 — live rates + flight panel
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { initializeApp, getApps } from "firebase/app";
+import { getFirestore, doc, setDoc, onSnapshot } from "firebase/firestore";
 
 // ─── STYLES ───────────────────────────────────────────────────────────────────
 const CSS = `
@@ -730,6 +732,68 @@ function useGoogleDrive(){
   return {token:isAuthed?token:null,isAuthed,signIn,signOut,authLoading};
 }
 
+// ─── FIRESTORE SYNC ───────────────────────────────────────────────────────────
+const FB_CFG = {
+  apiKey:    import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain:"perth-relocation.firebaseapp.com",
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  appId:     import.meta.env.VITE_FIREBASE_APP_ID,
+};
+
+function useFirestoreSync(state, setters) {
+  const [syncStatus, setSyncStatus] = useState("off"); // off | connecting | live | error
+  const refRef   = useRef(null);
+  const skipRef  = useRef(false);
+  const timerRef = useRef(null);
+
+  // Init + subscribe
+  useEffect(() => {
+    if(!FB_CFG.apiKey || !FB_CFG.projectId || !FB_CFG.appId) return;
+    setSyncStatus("connecting");
+    try {
+      const fbApp = getApps().length ? getApps()[0] : initializeApp(FB_CFG);
+      const db    = getFirestore(fbApp);
+      const ref   = doc(db, "prc", "state");
+      refRef.current = ref;
+
+      const unsub = onSnapshot(ref, snap => {
+        if(skipRef.current) return;
+        if(!snap.exists()) { setSyncStatus("live"); return; }
+        const d = snap.data();
+        if(d.plans) setters.setPlans(d.plans);
+        if(d.items) setters.setItems(d.items);
+        if(d.docs)  setters.setDocs(d.docs);
+        if(d.shop)  setters.setShop(d.shop);
+        if(d.rates) setters.setRates(d.rates);
+        if(d.cur)   setters.setCur(d.cur);
+        setSyncStatus("live");
+      }, () => setSyncStatus("error"));
+
+      return () => unsub();
+    } catch(e) { setSyncStatus("error"); }
+  }, []);
+
+  // Debounced write
+  const save = useCallback(() => {
+    if(!refRef.current) return;
+    skipRef.current = true;
+    setDoc(refRef.current, {
+      plans: state.plans, items: state.items, docs: state.docs,
+      shop: state.shop, rates: state.rates, cur: state.cur, _t: Date.now()
+    }).then(() => setTimeout(() => { skipRef.current = false; }, 600))
+      .catch(() => { skipRef.current = false; });
+  }, [state.plans, state.items, state.docs, state.shop, state.rates, state.cur]);
+
+  useEffect(() => {
+    if(syncStatus !== "live") return;
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(save, 1200);
+    return () => clearTimeout(timerRef.current);
+  }, [state.plans, state.items, state.docs, state.shop, state.rates, state.cur, syncStatus]);
+
+  return syncStatus;
+}
+
 // ─── PIE CHART ────────────────────────────────────────────────────────────────
 function Pie({data}){
   const COLS=["#00d4aa","#3b82f6","#f59e0b","#ef4444","#8b5cf6"];
@@ -776,6 +840,11 @@ export default function App(){
   const [tick,setTick] = useState(getCountdown());
 
   useEffect(()=>{ const t=setInterval(()=>setTick(getCountdown()),1000); return()=>clearInterval(t); },[]);
+
+  const syncStatus = useFirestoreSync(
+    {plans,items,docs,shop,rates,cur},
+    {setPlans,setItems,setDocs,setShop,setRates,setCur}
+  );
 
   const T=(msg,type="ok")=>{ setToast({msg,type}); setTimeout(()=>setToast(null),3500); };
 
@@ -859,6 +928,10 @@ export default function App(){
             <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:7}}>Display Currency</div>
             <div className="cur-toggle">
               {["ILS","AUD","USD"].map(c=><button key={c} className={`cur-btn ${cur===c?"on":""}`} onClick={()=>setCur(c)}>{c}</button>)}
+            </div>
+            <div style={{marginTop:10,fontSize:10,color:syncStatus==="live"?"var(--g)":syncStatus==="connecting"?"var(--am)":syncStatus==="error"?"var(--re)":"var(--t3)",display:"flex",alignItems:"center",gap:4}}>
+              <span style={{fontSize:7}}>●</span>
+              {syncStatus==="live"?"Synced":syncStatus==="connecting"?"Syncing…":syncStatus==="error"?"Sync error":"Local only"}
             </div>
           </div>
         </nav>
