@@ -742,6 +742,7 @@ const FB_CFG = {
 
 function useFirestoreSync(state, setters) {
   const [syncStatus, setSyncStatus] = useState("off"); // off | connecting | live | error
+  const [syncErr,   setSyncErr]    = useState("");
   const refRef   = useRef(null);
   const skipRef  = useRef(false);
   const timerRef = useRef(null);
@@ -767,10 +768,10 @@ function useFirestoreSync(state, setters) {
         if(d.rates) setters.setRates(d.rates);
         if(d.cur)   setters.setCur(d.cur);
         setSyncStatus("live");
-      }, () => setSyncStatus("error"));
+      }, (e) => { setSyncStatus("error"); setSyncErr(e?.code||e?.message||"unknown"); });
 
       return () => unsub();
-    } catch(e) { setSyncStatus("error"); }
+    } catch(e) { setSyncStatus("error"); setSyncErr(e?.code||e?.message||"init"); }
   }, []);
 
   // Debounced write
@@ -791,7 +792,7 @@ function useFirestoreSync(state, setters) {
     return () => clearTimeout(timerRef.current);
   }, [state.plans, state.items, state.docs, state.shop, state.rates, state.cur, syncStatus]);
 
-  return syncStatus;
+  return {status: syncStatus, err: syncErr};
 }
 
 // ─── PIE CHART ────────────────────────────────────────────────────────────────
@@ -841,7 +842,7 @@ export default function App(){
 
   useEffect(()=>{ const t=setInterval(()=>setTick(getCountdown()),1000); return()=>clearInterval(t); },[]);
 
-  const syncStatus = useFirestoreSync(
+  const {status:syncStatus, err:syncErr} = useFirestoreSync(
     {plans,items,docs,shop,rates,cur},
     {setPlans,setItems,setDocs,setShop,setRates,setCur}
   );
@@ -929,9 +930,9 @@ export default function App(){
             <div className="cur-toggle">
               {["ILS","AUD","USD"].map(c=><button key={c} className={`cur-btn ${cur===c?"on":""}`} onClick={()=>setCur(c)}>{c}</button>)}
             </div>
-            <div style={{marginTop:10,fontSize:10,color:syncStatus==="live"?"var(--g)":syncStatus==="connecting"?"var(--am)":syncStatus==="error"?"var(--re)":"var(--t3)",display:"flex",alignItems:"center",gap:4}}>
+            <div style={{marginTop:10,fontSize:10,color:syncStatus==="live"?"var(--g)":syncStatus==="connecting"?"var(--am)":syncStatus==="error"?"var(--re)":"var(--t3)",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
               <span style={{fontSize:7}}>●</span>
-              {syncStatus==="live"?"Synced":syncStatus==="connecting"?"Syncing…":syncStatus==="error"?"Sync error":"Local only"}
+              {syncStatus==="live"?"Synced":syncStatus==="connecting"?"Syncing…":syncStatus==="error"?`Sync error${syncErr?" · "+syncErr:""}`:FB_CFG.apiKey?"Local only":"No Firebase"}
             </div>
           </div>
         </nav>
@@ -1402,6 +1403,7 @@ function JourneyTab({items,phdDone}){
 function DocsPage({docs,setDocs,items,T}){
   const drive = useGoogleDrive();
   const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  const isNative = !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
   return(
     <>
       <div className="page-header">
@@ -1409,29 +1411,37 @@ function DocsPage({docs,setDocs,items,T}){
         <div className="page-sub">Upload files directly to Google Drive · organised by category</div>
       </div>
       <div className="page-body">
-        {!CLIENT_ID&&(
-          <div className="alert alert-w" style={{marginBottom:14}}>
-            ⚙️ Set <code>VITE_GOOGLE_CLIENT_ID</code> in Netlify environment variables to enable Drive uploads.
+        {isNative?(
+          <div className="alert alert-b" style={{marginBottom:14}}>
+            🖥️ Drive upload is available on the <strong>web app</strong>. Documents you add here are saved and synced via Firebase.
           </div>
+        ):(
+          <>
+            {!CLIENT_ID&&(
+              <div className="alert alert-w" style={{marginBottom:14}}>
+                ⚙️ Set <code>VITE_GOOGLE_CLIENT_ID</code> in Netlify environment variables to enable Drive uploads.
+              </div>
+            )}
+            {CLIENT_ID&&!drive.isAuthed&&(
+              <div className="drive-connect">
+                <div style={{flex:1}}>
+                  <div style={{fontWeight:600,fontSize:13}}>Connect Google Drive</div>
+                  <div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>Sign in once per session to upload files directly to your Drive folder</div>
+                </div>
+                <button className="btn btn-g btn-sm" onClick={()=>drive.signIn().catch(e=>T(e.message,"err"))} disabled={drive.authLoading}>
+                  {drive.authLoading?"Connecting…":"Connect Drive"}
+                </button>
+              </div>
+            )}
+            {CLIENT_ID&&drive.isAuthed&&(
+              <div className="drive-connect" style={{background:"var(--g3)",borderColor:"rgba(0,212,170,.25)"}}>
+                <span style={{color:"var(--g)",fontSize:13}}>✓ Google Drive connected</span>
+                <button className="btn btn-s btn-xs" style={{marginLeft:"auto"}} onClick={drive.signOut}>Disconnect</button>
+              </div>
+            )}
+          </>
         )}
-        {CLIENT_ID&&!drive.isAuthed&&(
-          <div className="drive-connect">
-            <div style={{flex:1}}>
-              <div style={{fontWeight:600,fontSize:13}}>Connect Google Drive</div>
-              <div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>Sign in once per session to upload files directly to your Drive folder</div>
-            </div>
-            <button className="btn btn-g btn-sm" onClick={()=>drive.signIn().catch(e=>T(e.message,"err"))} disabled={drive.authLoading}>
-              {drive.authLoading?"Connecting…":"Connect Drive"}
-            </button>
-          </div>
-        )}
-        {CLIENT_ID&&drive.isAuthed&&(
-          <div className="drive-connect" style={{background:"var(--g3)",borderColor:"rgba(0,212,170,.25)"}}>
-            <span style={{color:"var(--g)",fontSize:13}}>✓ Google Drive connected</span>
-            <button className="btn btn-s btn-xs" style={{marginLeft:"auto"}} onClick={drive.signOut}>Disconnect</button>
-          </div>
-        )}
-        <DocumentsTab docs={docs} setDocs={setDocs} items={items} T={T} drive={drive}/>
+        <DocumentsTab docs={docs} setDocs={setDocs} items={items} T={T} drive={isNative?null:drive}/>
       </div>
     </>
   );
@@ -1625,33 +1635,43 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
               </div>
             </div>
 
-            <div className="flabel" style={{marginTop:10,marginBottom:4}}>File · Upload to Google Drive</div>
-            {f.driveFileId&&!pendingFile?(
-              <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"var(--g3)",border:"1px solid rgba(0,212,170,.25)",borderRadius:8,fontSize:12,marginBottom:4}}>
-                <span style={{color:"var(--g)"}}>📂</span>
-                <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{color:"var(--g)",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.driveFileName}</a>
-                <button className="btn btn-d btn-xs" onClick={()=>sf("driveFileId","")}>Replace</button>
-              </div>
-            ):(
-              <div
-                className={`upload-zone${drag?" drag":""}`}
-                onDragOver={e=>{e.preventDefault();setDrag(true);}}
-                onDragLeave={()=>setDrag(false)}
-                onDrop={onDrop}
-                onClick={()=>!uploading&&fileRef.current?.click()}
-              >
-                <input ref={fileRef} type="file" onChange={e=>{setPendingFile(e.target.files[0]||null);e.target.value="";}}/>
-                {pendingFile
-                  ?<div style={{fontSize:12,color:"var(--g)"}}>{pendingFile.name} <span style={{color:"var(--t2)"}}>({(pendingFile.size/1024).toFixed(0)} KB)</span>
-                    <span style={{marginLeft:8,color:"var(--t2)",cursor:"pointer"}} onClick={e=>{e.stopPropagation();setPendingFile(null);}}>✕</span>
-                   </div>
-                  :<div style={{fontSize:12,color:"var(--t2)"}}>Drop file here or <span style={{color:"var(--g)"}}>click to browse</span></div>
-                }
-                {uploading&&<div className="upload-prog"><div className="upload-prog-fill" style={{width:`${uploadProg}%`}}/></div>}
-              </div>
+            {drive!==null&&(
+              <>
+                <div className="flabel" style={{marginTop:10,marginBottom:4}}>File · Upload to Google Drive</div>
+                {f.driveFileId&&!pendingFile?(
+                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"var(--g3)",border:"1px solid rgba(0,212,170,.25)",borderRadius:8,fontSize:12,marginBottom:4}}>
+                    <span style={{color:"var(--g)"}}>📂</span>
+                    <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{color:"var(--g)",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.driveFileName}</a>
+                    <button className="btn btn-d btn-xs" onClick={()=>sf("driveFileId","")}>Replace</button>
+                  </div>
+                ):(
+                  <div
+                    className={`upload-zone${drag?" drag":""}`}
+                    onDragOver={e=>{e.preventDefault();setDrag(true);}}
+                    onDragLeave={()=>setDrag(false)}
+                    onDrop={onDrop}
+                    onClick={()=>!uploading&&fileRef.current?.click()}
+                  >
+                    <input ref={fileRef} type="file" onChange={e=>{setPendingFile(e.target.files[0]||null);e.target.value="";}}/>
+                    {pendingFile
+                      ?<div style={{fontSize:12,color:"var(--g)"}}>{pendingFile.name} <span style={{color:"var(--t2)"}}>({(pendingFile.size/1024).toFixed(0)} KB)</span>
+                        <span style={{marginLeft:8,color:"var(--t2)",cursor:"pointer"}} onClick={e=>{e.stopPropagation();setPendingFile(null);}}>✕</span>
+                       </div>
+                      :<div style={{fontSize:12,color:"var(--t2)"}}>Drop file here or <span style={{color:"var(--g)"}}>click to browse</span></div>
+                    }
+                    {uploading&&<div className="upload-prog"><div className="upload-prog-fill" style={{width:`${uploadProg}%`}}/></div>}
+                  </div>
+                )}
+                {pendingFile&&!drive?.isAuthed&&(
+                  <div style={{fontSize:11,color:"var(--am)",marginTop:4}}>⚠️ Connect Google Drive (top of page) to upload this file</div>
+                )}
+              </>
             )}
-            {pendingFile&&!drive?.isAuthed&&(
-              <div style={{fontSize:11,color:"var(--am)",marginTop:4}}>⚠️ Connect Google Drive (top of page) to upload this file</div>
+            {drive===null&&f.driveUrl&&(
+              <div style={{marginTop:10}}>
+                <div className="flabel" style={{marginBottom:4}}>Linked File</div>
+                <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--g)"}}>📂 {f.driveFileName||"Open in Drive"}</a>
+              </div>
             )}
 
             <div className="fcol" style={{marginTop:8}}>
