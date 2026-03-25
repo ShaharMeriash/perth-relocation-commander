@@ -954,7 +954,7 @@ export default function App(){
           {page==="advisor" && <AdvisorPage items={items} plans={plans} rates={rates} onAddItem={a=>{setItems(prev=>[...prev,{...a,id:"a"+Date.now(),subs:[]}]);T("Item added to "+plans.find(p=>p.id===a.planId)?.title+" ✓");}}/>}
           {page==="docs" && <DocsPage docs={docs} setDocs={setDocs} items={items} T={T}/>}
           {page==="vault" && <VaultPage items={items} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
-          {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates} items={items} setItems={setItems} plans={plans} setPlans={setPlans}/>}
+          {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates} items={items} setItems={setItems} plans={plans} setPlans={setPlans} syncStatus={syncStatus} syncErr={syncErr}/>}
 
           {/* RATES BAR */}
           <div className="rates-bar">
@@ -1752,7 +1752,7 @@ function ShoppingTab({shop,setShop,rates,cur,fmtC,T}){
 // ─────────────────────────────────────────────────────────────────────────────
 // SETTINGS PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function SettingsPage({rates,setRates,fetchRates}){
+function SettingsPage({rates,setRates,fetchRates,syncStatus,syncErr}){
   const [audV,setAudV] = useState(String(rates.AUD));
   const [usdV,setUsdV] = useState(String(rates.USD));
   const save=()=>{
@@ -1792,6 +1792,20 @@ function SettingsPage({rates,setRates,fetchRates}){
               </div>
               <div style={{marginTop:12,padding:"10px 12px",background:"var(--s2)",borderRadius:8,fontSize:11,color:"var(--t1)"}}>
                 <strong>API:</strong> Claude AI · live web search · rates fetched in real-time
+              </div>
+            </div>
+            <div className="card" style={{marginTop:0}}>
+              <div className="card-title">Firebase Sync</div>
+              <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:12}}>
+                <span style={{fontSize:22,color:syncStatus==="live"?"var(--g)":syncStatus==="connecting"?"var(--am)":syncStatus==="error"?"var(--re)":"var(--t3)"}}>●</span>
+                <div>
+                  <div style={{fontWeight:600,fontSize:13,color:syncStatus==="live"?"var(--g)":syncStatus==="connecting"?"var(--am)":syncStatus==="error"?"var(--re)":"var(--t1)"}}>
+                    {syncStatus==="live"?"Synced with Firebase":syncStatus==="connecting"?"Connecting…":syncStatus==="error"?"Sync Error":"Local Only"}
+                  </div>
+                  {syncStatus==="error"&&syncErr&&<div style={{fontSize:11,color:"var(--re)",marginTop:2}}>{syncErr}</div>}
+                  {syncStatus==="off"&&<div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>Firebase env vars not detected in this build</div>}
+                  {syncStatus==="live"&&<div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>Data syncs across web and mobile in real-time</div>}
+                </div>
               </div>
             </div>
             <div className="card" style={{marginTop:0}}>
