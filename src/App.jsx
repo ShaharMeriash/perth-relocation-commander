@@ -879,13 +879,22 @@ export default function App(){
       // 1 AUD in ILS
       const audToIls = +parseFloat(audData.rates.ILS).toFixed(4);
       if(!usdToIls||!audToIls||isNaN(usdToIls)||isNaN(audToIls)) throw new Error("Bad values");
-      setRates({AUD:audToIls,USD:usdToIls,upd:new Date().toLocaleDateString("en-AU"),fetching:false});
+      setRates({AUD:audToIls,USD:usdToIls,upd:new Date().toLocaleDateString("en-AU"),fetching:false,ts:Date.now()});
+      sessionStorage.setItem("prc_rates_fetched","1");
       T(`Rates updated ✓  A$1 = ₪${audToIls}  $1 = ₪${usdToIls}`,"ok");
     }catch(e){
       setRates(r=>({...r,fetching:false}));
       T("Could not fetch — using saved rates","err");
     }
   };
+
+  // Auto-fetch rates: new session OR last fetch > 24h ago
+  useEffect(()=>{
+    const newSession = !sessionStorage.getItem("prc_rates_fetched");
+    const stale = !rates.ts || (Date.now() - rates.ts > 86400000);
+    if(newSession || stale) fetchRates();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
 
   const fmtC = v => fmt(v,cur);
 
@@ -926,11 +935,7 @@ export default function App(){
             ))}
           </div>
           <div className="nav-bottom">
-            <div style={{fontSize:9,color:"var(--t3)",textTransform:"uppercase",letterSpacing:"1.5px",marginBottom:7}}>Display Currency</div>
-            <div className="cur-toggle">
-              {["ILS","AUD","USD"].map(c=><button key={c} className={`cur-btn ${cur===c?"on":""}`} onClick={()=>setCur(c)}>{c}</button>)}
-            </div>
-            <div style={{marginTop:10,fontSize:10,color:syncStatus==="live"?"var(--g)":syncStatus==="connecting"?"var(--am)":syncStatus==="error"?"var(--re)":"var(--t3)",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
+            <div style={{fontSize:10,color:syncStatus==="live"?"var(--g)":syncStatus==="connecting"?"var(--am)":syncStatus==="error"?"var(--re)":"var(--t3)",display:"flex",alignItems:"center",gap:4,flexWrap:"wrap"}}>
               <span style={{fontSize:7}}>●</span>
               {syncStatus==="live"?"Synced":syncStatus==="connecting"?"Syncing…":syncStatus==="error"?`Sync error${syncErr?" · "+syncErr:""}`:FB_CFG.apiKey?"Local only":"No Firebase"}
             </div>
@@ -939,15 +944,6 @@ export default function App(){
 
         {/* MAIN */}
         <div className="main">
-          {/* MOBILE CURRENCY BAR */}
-          <div className="mob-cur-bar">
-            <span className="mob-cur-label">Currency</span>
-            <div className="cur-toggle">
-              {["ILS","AUD","USD"].map(c=><button key={c} className={`cur-btn ${cur===c?"on":""}`} onClick={()=>setCur(c)}>{c}</button>)}
-            </div>
-            <span style={{marginLeft:"auto",fontSize:10,color:"var(--t2)"}}>A$=₪{rates.AUD} · $=₪{rates.USD}</span>
-          </div>
-
           {page==="today" && <TodayPage items={items} plans={plans} phdDone={phdDone} tick={tick} cur={cur} rates={rates} fmtC={fmtC} totEst={totEst} totPaid={totPaid} overdue={overdue} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} cycleStatus={cycleStatus} setPage={setPage}/>}
           {page==="plan"  && <PlanPage items={items} plans={plans} setPlans={setPlans} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} onDelete={deleteItem} cycleStatus={cycleStatus} T={T}/>}
           {page==="finance" && <FinancePage items={items} plans={plans} rates={rates} onEdit={a=>setModal({type:"item",a})} setItems={setItems} T={T}/>}
@@ -958,13 +954,16 @@ export default function App(){
 
           {/* RATES BAR */}
           <div className="rates-bar">
-            <div className="rate-item">
-              <span style={{color:"var(--t2)"}}>1 AUD =</span>
-              <span className="rate-val">₪{rates.AUD}</span>
+            <div className="cur-toggle">
+              {["ILS","AUD","USD"].map(c=><button key={c} className={`cur-btn ${cur===c?"on":""}`} onClick={()=>setCur(c)}>{c}</button>)}
             </div>
             <div className="rate-item">
-              <span style={{color:"var(--t2)"}}>1 USD =</span>
-              <span className="rate-val">₪{rates.USD}</span>
+              <span style={{color:"var(--t2)"}}>A$=₪</span>
+              <span className="rate-val">{rates.AUD}</span>
+            </div>
+            <div className="rate-item">
+              <span style={{color:"var(--t2)"}}>$=₪</span>
+              <span className="rate-val">{rates.USD}</span>
             </div>
             <span className="rate-updated">Updated: {rates.upd}</span>
             <button className="btn btn-s btn-sm" style={{marginLeft:"auto"}} onClick={fetchRates} disabled={rates.fetching}>
