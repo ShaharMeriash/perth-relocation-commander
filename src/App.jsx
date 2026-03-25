@@ -1666,10 +1666,14 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
                 )}
               </>
             )}
-            {drive===null&&f.driveUrl&&(
+            {drive===null&&(
               <div style={{marginTop:10}}>
-                <div className="flabel" style={{marginBottom:4}}>Linked File</div>
-                <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{fontSize:12,color:"var(--g)"}}>📂 {f.driveFileName||"Open in Drive"}</a>
+                <div className="flabel" style={{marginBottom:4}}>File</div>
+                {f.driveUrl?(
+                  <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--g)",textDecoration:"none"}}>📂 {f.driveFileName||"Open in Drive"}</a>
+                ):(
+                  <div style={{fontSize:11,color:"var(--t2)",padding:"10px 12px",background:"var(--s2)",borderRadius:8}}>📎 File upload available on the web app</div>
+                )}
               </div>
             )}
 
