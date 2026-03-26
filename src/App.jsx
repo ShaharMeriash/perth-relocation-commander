@@ -1403,6 +1403,15 @@ function DocsPage({docs,setDocs,items,T}){
   const drive = useGoogleDrive();
   const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const isNative = !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
+
+  // Auto-connect Drive on each new session (silent if already consented, no-op if not)
+  useEffect(()=>{
+    if(!isNative && CLIENT_ID && !drive.isAuthed && !drive.authLoading){
+      drive.signIn().catch(()=>{});
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[]);
+
   return(
     <>
       <div className="page-header">
@@ -1562,8 +1571,34 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
   const [filterFile,setFilterFile] = useState(false);
   const [filterAid,setFilterAid]   = useState("");
 
+  // inline upload
+  const [inlineId,setInlineId]     = useState(null);
+  const [inlineUploading,setInlineUploading] = useState(false);
+  const inlineRef = useRef();
+
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
   const reset=()=>{setF(BLANK);setPendingFile(null);setUploadProg(0);};
+
+  const DOC_STATUS_CYCLE = {pending:"collected",collected:"submitted",submitted:"approved",approved:"expired",expired:"pending"};
+  const cycleDocStatus = id => setDocs(prev=>prev.map(d=>d.id===id?{...d,status:DOC_STATUS_CYCLE[d.status||"pending"]}:d));
+
+  const handleInlineFile = async file => {
+    if(!file||!inlineId) return;
+    const d = docs.find(x=>x.id===inlineId);
+    if(!d) return;
+    if(!drive?.isAuthed){T("Connect Google Drive first","err");setInlineId(null);return;}
+    setInlineUploading(true);
+    T("Uploading…","inf");
+    try{
+      const folder = await driveEnsureFolder(drive.token,d.category||"General",DRIVE_ROOT);
+      const uploaded = await driveUploadFile(drive.token,file,folder.id,()=>{});
+      const newFile = {id:"f"+Date.now(),driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink};
+      setDocs(prev=>prev.map(x=>x.id===d.id?{...x,files:[...(x.files||[]),newFile],driveFileId:"",driveFileName:"",driveUrl:""}:x));
+      T("Uploaded ✓");
+    }catch(e){ T("Upload failed: "+e.message,"err"); }
+    setInlineUploading(false);
+    setInlineId(null);
+  };
 
   const existingCats=[...new Set(docs.map(d=>d.category).filter(Boolean))];
   const linkedAids=[...new Set(docs.map(d=>d.aid).filter(Boolean))];
@@ -1628,14 +1663,18 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
 
   return(
     <>
+      {/* Hidden inline file input */}
+      <input ref={inlineRef} type="file" style={{display:"none"}} onChange={e=>{handleInlineFile(e.target.files[0]||null);e.target.value="";}}/>
+
       {/* Header row */}
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
         <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-          <span style={{fontSize:12,color:"var(--t1)"}}>{docs.length} total</span>
+          <span style={{fontSize:12,color:"var(--t1)"}}><strong>{docs.length}</strong> docs · <strong>{docs.filter(d=>docHasFile(d)).length}</strong> with files</span>
           <span style={{fontSize:12,color:"var(--g)"}}>✓ {collected} collected</span>
           <span style={{fontSize:12,color:"var(--am)"}}>{pending} pending</span>
           {docs.filter(d=>d.exp&&new Date(d.exp)<soonDate).length>0&&
             <span style={{fontSize:12,color:"var(--am)"}}>⚠️ {docs.filter(d=>d.exp&&new Date(d.exp)<soonDate).length} expiring soon</span>}
+          {hasFilters&&visible.length!==docs.length&&<span style={{fontSize:12,color:"var(--t2)"}}>showing {visible.length}</span>}
         </div>
         <button className="btn btn-g btn-sm" onClick={()=>{reset();setMo(true);}}>+ Add Document</button>
       </div>
@@ -1674,12 +1713,18 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
           const sc=DOC_STATUS_CLS[d.status||"pending"]||"tam";
           const sl=DOC_STATUS_LABEL[d.status||"pending"]||"Pending";
           const allFiles=docAllFiles(d);
+          const isInlineUploading = inlineUploading && inlineId===d.id;
           return(
             <div key={d.id} className="doc-row">
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                   <span style={{fontWeight:600,fontSize:13}}>{d.type}</span>
-                  <span className={"tag "+sc}>{sl}</span>
+                  {/* Inline status — click to cycle */}
+                  <span
+                    className={"tag "+sc+" status-tog"}
+                    title={"Click to change status · next: "+DOC_STATUS_LABEL[DOC_STATUS_CYCLE[d.status||"pending"]]}
+                    onClick={()=>cycleDocStatus(d.id)}
+                  >{sl}</span>
                   {d.category&&<span className="tag t3">{d.category}</span>}
                 </div>
                 {allFiles.length>0&&(
@@ -1698,6 +1743,15 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
                 </div>
               </div>
               <div style={{display:"flex",gap:5,flexShrink:0,marginLeft:10,alignItems:"center"}}>
+                {/* Inline file upload — only on web */}
+                {drive!==null&&(
+                  <button
+                    className="btn btn-s btn-sm"
+                    title={drive?.isAuthed?"Upload file":"Connect Drive to upload"}
+                    disabled={isInlineUploading}
+                    onClick={()=>{setInlineId(d.id);setTimeout(()=>inlineRef.current?.click(),0);}}
+                  >{isInlineUploading?"⏳":"📎"}</button>
+                )}
                 <button className="btn btn-s btn-sm" onClick={()=>openEdit(d)}>Edit</button>
                 <button className="btn btn-s btn-sm" onClick={()=>duplicate(d)} title="Duplicate (no files)">⧉</button>
                 <button className="btn btn-d btn-sm" onClick={()=>setDocs(p=>p.filter(x=>x.id!==d.id))}>✕</button>
