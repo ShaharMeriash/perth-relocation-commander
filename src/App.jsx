@@ -1518,8 +1518,34 @@ const DOC_STATUSES = ["pending","collected","submitted","approved","expired"];
 const DOC_STATUS_CLS = {pending:"tam",collected:"tg",submitted:"tb",approved:"tg",expired:"tr"};
 const DOC_STATUS_LABEL = {pending:"Pending",collected:"Collected",submitted:"Submitted",approved:"Approved",expired:"Expired"};
 
+// Returns unified file list — handles both legacy single-file and new multi-file shape
+function docAllFiles(d){
+  if(d.files?.length) return d.files;
+  if(d.driveFileId) return [{id:"leg",driveFileId:d.driveFileId,driveFileName:d.driveFileName,driveUrl:d.driveUrl}];
+  return [];
+}
+function docHasFile(d){ return docAllFiles(d).length>0; }
+
+function sortDocsList(docs,sortBy){
+  const s=[...docs];
+  if(sortBy==="newest") return s.sort((a,b)=>b.id.localeCompare(a.id));
+  if(sortBy==="oldest") return s.sort((a,b)=>a.id.localeCompare(b.id));
+  if(sortBy==="alpha")  return s.sort((a,b)=>(a.type||"").localeCompare(b.type||""));
+  if(sortBy==="status"){
+    const ord={pending:0,collected:1,submitted:2,approved:3,expired:4};
+    return s.sort((a,b)=>(ord[a.status||"pending"]||0)-(ord[b.status||"pending"]||0));
+  }
+  if(sortBy==="hasfile") return s.sort((a,b)=>(docHasFile(b)?1:0)-(docHasFile(a)?1:0));
+  if(sortBy==="expiry")  return s.sort((a,b)=>{
+    if(!a.exp&&!b.exp) return 0;
+    if(!a.exp) return 1; if(!b.exp) return -1;
+    return new Date(a.exp)-new Date(b.exp);
+  });
+  return s;
+}
+
 function DocumentsTab({docs,setDocs,items,T,drive}){
-  const BLANK = {id:"",type:"",category:"",status:"pending",exp:"",aid:"",driveFileId:"",driveFileName:"",driveUrl:"",notes:""};
+  const BLANK = {id:"",type:"",category:"",status:"pending",exp:"",aid:"",files:[],driveFileId:"",driveFileName:"",driveUrl:"",notes:""};
   const [mo,setMo] = useState(false);
   const [f,setF] = useState(BLANK);
   const [pendingFile,setPendingFile] = useState(null);
@@ -1528,10 +1554,34 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
   const [drag,setDrag] = useState(false);
   const fileRef = useRef();
 
+  // sort + filter
+  const [sortBy,setSortBy]         = useState("newest");
+  const [search,setSearch]         = useState("");
+  const [filterCat,setFilterCat]   = useState("");
+  const [filterSt,setFilterSt]     = useState("");
+  const [filterFile,setFilterFile] = useState(false);
+  const [filterAid,setFilterAid]   = useState("");
+
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
   const reset=()=>{setF(BLANK);setPendingFile(null);setUploadProg(0);};
 
   const existingCats=[...new Set(docs.map(d=>d.category).filter(Boolean))];
+  const linkedAids=[...new Set(docs.map(d=>d.aid).filter(Boolean))];
+
+  const openEdit=d=>{
+    // Migrate legacy single file into files array on open
+    let data={...BLANK,...d,files:d.files?[...d.files]:[]};
+    if(!data.files.length&&data.driveFileId){
+      data={...data,files:[{id:"leg_"+d.id,driveFileId:d.driveFileId,driveFileName:d.driveFileName,driveUrl:d.driveUrl}]};
+    }
+    setF(data);setPendingFile(null);setMo(true);
+  };
+
+  const duplicate=d=>{
+    const {id,files,driveFileId,driveFileName,driveUrl,...rest}=d;
+    setDocs(prev=>[...prev,{...BLANK,...rest,files:[],driveFileId:"",driveFileName:"",driveUrl:"",id:"d"+Date.now()}]);
+    T("Duplicated ✓");
+  };
 
   const save=async()=>{
     if(!f.type.trim()){T("Document type required","err");return;}
@@ -1543,15 +1593,17 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
         const catName=f.category.trim()||"General";
         const folder=await driveEnsureFolder(drive.token,catName,DRIVE_ROOT);
         const uploaded=await driveUploadFile(drive.token,pendingFile,folder.id,setUploadProg);
-        doc={...doc,driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink};
+        const newFile={id:"f"+Date.now(),driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink};
+        doc={...doc,files:[...(doc.files||[]),newFile]};
         T("Uploaded to Drive ✓");
       }catch(e){
         T("Upload failed: "+e.message,"err");
-        setUploading(false);
-        return;
+        setUploading(false);return;
       }
       setUploading(false);
     }
+    // Clear legacy fields if files array populated
+    if(doc.files?.length) doc={...doc,driveFileId:"",driveFileName:"",driveUrl:""};
     setDocs(prev=>f.id?prev.map(d=>d.id===f.id?doc:d):[...prev,{...doc,id:"d"+Date.now()}]);
     setMo(false);
     if(!pendingFile) T("Saved ✓");
@@ -1560,14 +1612,25 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
 
   const onDrop=e=>{e.preventDefault();setDrag(false);const file=e.dataTransfer.files[0];if(file)setPendingFile(file);};
 
+  // Apply filters + sort
+  let visible=docs;
+  if(search.trim()){const q=search.toLowerCase();visible=visible.filter(d=>(d.type||"").toLowerCase().includes(q)||(d.notes||"").toLowerCase().includes(q)||(d.category||"").toLowerCase().includes(q));}
+  if(filterCat)  visible=visible.filter(d=>d.category===filterCat);
+  if(filterSt)   visible=visible.filter(d=>(d.status||"pending")===filterSt);
+  if(filterFile) visible=visible.filter(d=>docHasFile(d));
+  if(filterAid)  visible=visible.filter(d=>d.aid===filterAid);
+  visible=sortDocsList(visible,sortBy);
+
   const soonDate=new Date(Date.now()+365*86400000);
   const collected=docs.filter(d=>d.status==="collected"||d.status==="submitted"||d.status==="approved").length;
   const pending=docs.filter(d=>!d.status||d.status==="pending").length;
+  const hasFilters=search||filterCat||filterSt||filterFile||filterAid;
 
   return(
     <>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-        <div style={{display:"flex",gap:16}}>
+      {/* Header row */}
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
           <span style={{fontSize:12,color:"var(--t1)"}}>{docs.length} total</span>
           <span style={{fontSize:12,color:"var(--g)"}}>✓ {collected} collected</span>
           <span style={{fontSize:12,color:"var(--am)"}}>{pending} pending</span>
@@ -1576,36 +1639,80 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
         </div>
         <button className="btn btn-g btn-sm" onClick={()=>{reset();setMo(true);}}>+ Add Document</button>
       </div>
+
+      {/* Filter + sort bar */}
+      <div className="filter-bar" style={{marginBottom:12}}>
+        <input className="search-in" placeholder="Search name, notes, category…" value={search} onChange={e=>setSearch(e.target.value)} style={{flex:"1 1 160px",minWidth:120}}/>
+        <select className="fsel" value={filterCat} onChange={e=>setFilterCat(e.target.value)}>
+          <option value="">All categories</option>
+          {existingCats.map(c=><option key={c}>{c}</option>)}
+        </select>
+        <select className="fsel" value={filterSt} onChange={e=>setFilterSt(e.target.value)}>
+          <option value="">All statuses</option>
+          {DOC_STATUSES.map(s=><option key={s} value={s}>{DOC_STATUS_LABEL[s]}</option>)}
+        </select>
+        <select className="fsel" value={filterAid} onChange={e=>setFilterAid(e.target.value)}>
+          <option value="">All actions</option>
+          {linkedAids.map(aid=><option key={aid} value={aid}>{items.find(a=>a.id===aid)?.title||aid}</option>)}
+        </select>
+        <button className={"btn btn-sm "+(filterFile?"btn-g":"btn-s")} onClick={()=>setFilterFile(v=>!v)} title="Only docs with files">📂 Has file</button>
+        <select className="fsel" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+          <option value="newest">Newest first</option>
+          <option value="oldest">Oldest first</option>
+          <option value="alpha">A → Z</option>
+          <option value="status">By status</option>
+          <option value="hasfile">Has file first</option>
+          <option value="expiry">By expiry</option>
+        </select>
+        {hasFilters&&<button className="btn btn-s btn-sm" onClick={()=>{setSearch("");setFilterCat("");setFilterSt("");setFilterFile(false);setFilterAid("");}}>✕ Clear</button>}
+      </div>
+
+      {/* Doc list */}
       <div className="card" style={{padding:0,overflow:"hidden"}}>
-        {docs.map(d=>{
+        {visible.map(d=>{
           const expiring=d.exp&&new Date(d.exp)<soonDate;
           const sc=DOC_STATUS_CLS[d.status||"pending"]||"tam";
           const sl=DOC_STATUS_LABEL[d.status||"pending"]||"Pending";
+          const allFiles=docAllFiles(d);
           return(
             <div key={d.id} className="doc-row">
               <div style={{flex:1,minWidth:0}}>
                 <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
                   <span style={{fontWeight:600,fontSize:13}}>{d.type}</span>
-                  <span className={`tag ${sc}`}>{sl}</span>
+                  <span className={"tag "+sc}>{sl}</span>
                   {d.category&&<span className="tag t3">{d.category}</span>}
-                  {d.driveUrl&&<a className="drive-btn" href={d.driveUrl} target="_blank" rel="noopener noreferrer">📂 {d.driveFileName||"Drive"}</a>}
                 </div>
+                {allFiles.length>0&&(
+                  <div style={{display:"flex",gap:4,marginTop:5,flexWrap:"wrap"}}>
+                    {allFiles.map((file,fi)=>(
+                      <a key={fi} className="drive-btn" href={file.driveUrl} target="_blank" rel="noopener noreferrer">
+                        📂 {file.driveFileName||(allFiles.length>1?"File "+(fi+1):"File")}
+                      </a>
+                    ))}
+                  </div>
+                )}
                 <div style={{display:"flex",gap:10,marginTop:4,flexWrap:"wrap"}}>
                   {d.exp&&<span style={{fontSize:11,color:expiring?"var(--am)":"var(--t2)"}}>Expires {d.exp}{expiring?" ⚠️":""}</span>}
                   {d.aid&&<span style={{fontSize:11,color:"var(--t2)"}}>🔗 {items.find(a=>a.id===d.aid)?.title||d.aid}</span>}
-                  {d.notes&&<span style={{fontSize:11,color:"var(--t1)"}}>{d.notes}</span>}
+                  {d.notes&&<span style={{fontSize:11,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:260}}>{d.notes}</span>}
                 </div>
               </div>
-              <div style={{display:"flex",gap:6,flexShrink:0,marginLeft:10}}>
-                <button className="btn btn-s btn-sm" onClick={()=>{setF({...BLANK,...d});setPendingFile(null);setMo(true);}}>Edit</button>
+              <div style={{display:"flex",gap:5,flexShrink:0,marginLeft:10,alignItems:"center"}}>
+                <button className="btn btn-s btn-sm" onClick={()=>openEdit(d)}>Edit</button>
+                <button className="btn btn-s btn-sm" onClick={()=>duplicate(d)} title="Duplicate (no files)">⧉</button>
                 <button className="btn btn-d btn-sm" onClick={()=>setDocs(p=>p.filter(x=>x.id!==d.id))}>✕</button>
               </div>
             </div>
           );
         })}
-        {!docs.length&&<div style={{color:"var(--t2)",textAlign:"center",padding:"28px 0",fontSize:13}}>No documents yet — add one above</div>}
+        {!visible.length&&(
+          <div style={{color:"var(--t2)",textAlign:"center",padding:"28px 0",fontSize:13}}>
+            {hasFilters?"No documents match the current filters":"No documents yet — add one above"}
+          </div>
+        )}
       </div>
 
+      {/* Modal */}
       {mo&&<div className="overlay" onClick={e=>e.target===e.currentTarget&&(setMo(false),reset())}>
         <div className="modal">
           <div className="modal-title">{f.id?"Edit":"Add"} Document</div>
@@ -1634,43 +1741,55 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
               </div>
             </div>
 
+            {/* Files — web (Drive connected or not) */}
             {drive!==null&&(
               <>
-                <div className="flabel" style={{marginTop:10,marginBottom:4}}>File · Upload to Google Drive</div>
-                {f.driveFileId&&!pendingFile?(
-                  <div style={{display:"flex",alignItems:"center",gap:8,padding:"8px 12px",background:"var(--g3)",border:"1px solid rgba(0,212,170,.25)",borderRadius:8,fontSize:12,marginBottom:4}}>
+                <div className="flabel" style={{marginTop:12,marginBottom:6}}>
+                  Files · Google Drive
+                  {(f.files||[]).length>0&&<span style={{fontWeight:400,color:"var(--t2)",marginLeft:6,textTransform:"none"}}>{(f.files||[]).length} uploaded</span>}
+                </div>
+                {(f.files||[]).map((file,fi)=>(
+                  <div key={fi} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",background:"var(--g3)",border:"1px solid rgba(0,212,170,.25)",borderRadius:8,fontSize:12,marginBottom:5}}>
                     <span style={{color:"var(--g)"}}>📂</span>
-                    <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{color:"var(--g)",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{f.driveFileName}</a>
-                    <button className="btn btn-d btn-xs" onClick={()=>sf("driveFileId","")}>Replace</button>
+                    <a href={file.driveUrl} target="_blank" rel="noopener noreferrer" style={{color:"var(--g)",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{file.driveFileName}</a>
+                    <button className="btn btn-d btn-xs" onClick={()=>sf("files",(f.files||[]).filter((_,i)=>i!==fi))}>Remove</button>
                   </div>
-                ):(
-                  <div
-                    className={`upload-zone${drag?" drag":""}`}
-                    onDragOver={e=>{e.preventDefault();setDrag(true);}}
-                    onDragLeave={()=>setDrag(false)}
-                    onDrop={onDrop}
-                    onClick={()=>!uploading&&fileRef.current?.click()}
-                  >
-                    <input ref={fileRef} type="file" onChange={e=>{setPendingFile(e.target.files[0]||null);e.target.value="";}}/>
-                    {pendingFile
-                      ?<div style={{fontSize:12,color:"var(--g)"}}>{pendingFile.name} <span style={{color:"var(--t2)"}}>({(pendingFile.size/1024).toFixed(0)} KB)</span>
-                        <span style={{marginLeft:8,color:"var(--t2)",cursor:"pointer"}} onClick={e=>{e.stopPropagation();setPendingFile(null);}}>✕</span>
-                       </div>
-                      :<div style={{fontSize:12,color:"var(--t2)"}}>Drop file here or <span style={{color:"var(--g)"}}>click to browse</span></div>
-                    }
-                    {uploading&&<div className="upload-prog"><div className="upload-prog-fill" style={{width:`${uploadProg}%`}}/></div>}
-                  </div>
-                )}
+                ))}
+                <div
+                  className={"upload-zone"+(drag?" drag":"")}
+                  onDragOver={e=>{e.preventDefault();setDrag(true);}}
+                  onDragLeave={()=>setDrag(false)}
+                  onDrop={onDrop}
+                  onClick={()=>!uploading&&fileRef.current?.click()}
+                  style={{marginTop:(f.files||[]).length?4:0}}
+                >
+                  <input ref={fileRef} type="file" onChange={e=>{setPendingFile(e.target.files[0]||null);e.target.value="";}}/>
+                  {pendingFile
+                    ?<div style={{fontSize:12,color:"var(--g)"}}>{pendingFile.name} <span style={{color:"var(--t2)"}}>({(pendingFile.size/1024).toFixed(0)} KB)</span>
+                      <span style={{marginLeft:8,color:"var(--t2)",cursor:"pointer"}} onClick={e=>{e.stopPropagation();setPendingFile(null);}}>✕</span>
+                     </div>
+                    :<div style={{fontSize:12,color:"var(--t2)"}}>
+                      {(f.files||[]).length?"+ Add another file — drop here or ":"Drop file here or "}
+                      <span style={{color:"var(--g)"}}>click to browse</span>
+                    </div>
+                  }
+                  {uploading&&<div className="upload-prog"><div className="upload-prog-fill" style={{width:`${uploadProg}%`}}/></div>}
+                </div>
                 {pendingFile&&!drive?.isAuthed&&(
                   <div style={{fontSize:11,color:"var(--am)",marginTop:4}}>⚠️ Connect Google Drive (top of page) to upload this file</div>
                 )}
               </>
             )}
+            {/* Files — native (read-only links) */}
             {drive===null&&(
               <div style={{marginTop:10}}>
-                <div className="flabel" style={{marginBottom:4}}>File</div>
-                {f.driveUrl?(
-                  <a href={f.driveUrl} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--g)",textDecoration:"none"}}>📂 {f.driveFileName||"Open in Drive"}</a>
+                <div className="flabel" style={{marginBottom:6}}>Files</div>
+                {docAllFiles(f).length>0?(
+                  <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
+                    {docAllFiles(f).map((file,fi)=>(
+                      <a key={fi} href={file.driveUrl} target="_blank" rel="noopener noreferrer" style={{display:"inline-flex",alignItems:"center",gap:6,fontSize:12,color:"var(--g)",textDecoration:"none"}}>📂 {file.driveFileName||"File "+(fi+1)}</a>
+                    ))}
+                  </div>
                 ):(
                   <div style={{fontSize:11,color:"var(--t2)",padding:"10px 12px",background:"var(--s2)",borderRadius:8}}>📎 File upload available on the web app</div>
                 )}
