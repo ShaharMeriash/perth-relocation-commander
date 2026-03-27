@@ -1404,10 +1404,14 @@ function DocsPage({docs,setDocs,items,T}){
   const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
   const isNative = !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
 
-  // Auto-connect Drive on each new session (silent if already consented, no-op if not)
+  // Auto-trigger Drive connect when page opens (requires user gesture on first visit,
+  // but GIS will skip the popup silently on subsequent visits if already consented)
+  const connectRef = useRef(false);
   useEffect(()=>{
-    if(!isNative && CLIENT_ID && !drive.isAuthed && !drive.authLoading){
-      drive.signIn().catch(()=>{});
+    if(!isNative && CLIENT_ID && !drive.isAuthed && !drive.authLoading && !connectRef.current){
+      connectRef.current = true;
+      // Small delay so the page renders first — keeps it feeling responsive
+      setTimeout(()=>drive.signIn().catch(()=>{ connectRef.current=false; }), 400);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   },[]);
@@ -1421,7 +1425,7 @@ function DocsPage({docs,setDocs,items,T}){
       <div className="page-body">
         {isNative?(
           <div className="alert alert-b" style={{marginBottom:14}}>
-            🖥️ Drive upload is available on the <strong>web app</strong>. Documents you add here are saved and synced via Firebase.
+            🖥️ Drive upload is available on the <strong>web app</strong>. Files linked via web are viewable here.
           </div>
         ):(
           <>
@@ -1433,12 +1437,19 @@ function DocsPage({docs,setDocs,items,T}){
             {CLIENT_ID&&!drive.isAuthed&&(
               <div className="drive-connect">
                 <div style={{flex:1}}>
-                  <div style={{fontWeight:600,fontSize:13}}>Connect Google Drive</div>
-                  <div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>Sign in once per session to upload files directly to your Drive folder</div>
+                  <div style={{fontWeight:600,fontSize:13}}>
+                    {drive.authLoading?"Connecting to Google Drive…":"Connect Google Drive"}
+                  </div>
+                  <div style={{fontSize:11,color:"var(--t2)",marginTop:2}}>
+                    {drive.authLoading?"":"One click per session to enable file uploads"}
+                  </div>
                 </div>
-                <button className="btn btn-g btn-sm" onClick={()=>drive.signIn().catch(e=>T(e.message,"err"))} disabled={drive.authLoading}>
-                  {drive.authLoading?"Connecting…":"Connect Drive"}
-                </button>
+                {!drive.authLoading&&(
+                  <button className="btn btn-g btn-sm" onClick={()=>drive.signIn().catch(e=>T(e.message,"err"))}>
+                    Connect Drive
+                  </button>
+                )}
+                {drive.authLoading&&<span style={{fontSize:12,color:"var(--am)"}}>⏳</span>}
               </div>
             )}
             {CLIENT_ID&&drive.isAuthed&&(
