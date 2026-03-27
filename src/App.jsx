@@ -1568,7 +1568,7 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
   const BLANK = {id:"",type:"",category:"",status:"pending",exp:"",aid:"",files:[],driveFileId:"",driveFileName:"",driveUrl:"",notes:""};
   const [mo,setMo] = useState(false);
   const [f,setF] = useState(BLANK);
-  const [pendingFile,setPendingFile] = useState(null);
+  const [pendingFiles,setPendingFiles] = useState([]);
   const [uploadProg,setUploadProg] = useState(0);
   const [uploading,setUploading] = useState(false);
   const [drag,setDrag] = useState(false);
@@ -1588,7 +1588,7 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
   const inlineRef = useRef();
 
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
-  const reset=()=>{setF(BLANK);setPendingFile(null);setUploadProg(0);};
+  const reset=()=>{setF(BLANK);setPendingFiles([]);setUploadProg(0);};
 
   const DOC_STATUS_CYCLE = {pending:"collected",collected:"submitted",submitted:"approved",approved:"expired",expired:"pending"};
   const cycleDocStatus = id => setDocs(prev=>prev.map(d=>d.id===id?{...d,status:DOC_STATUS_CYCLE[d.status||"pending"]}:d));
@@ -1620,7 +1620,7 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
     if(!data.files.length&&data.driveFileId){
       data={...data,files:[{id:"leg_"+d.id,driveFileId:d.driveFileId,driveFileName:d.driveFileName,driveUrl:d.driveUrl}]};
     }
-    setF(data);setPendingFile(null);setMo(true);
+    setF(data);setPendingFiles([]);setMo(true);
   };
 
   const duplicate=d=>{
@@ -1632,31 +1632,39 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
   const save=async()=>{
     if(!f.type.trim()){T("Document type required","err");return;}
     let doc={...f};
-    if(pendingFile){
+    if(pendingFiles.length){
       if(!drive?.isAuthed){T("Connect Google Drive first","err");return;}
       setUploading(true);
       try{
         const catName=f.category.trim()||"General";
         const folder=await driveEnsureFolder(drive.token,catName,DRIVE_ROOT);
-        const uploaded=await driveUploadFile(drive.token,pendingFile,folder.id,setUploadProg);
-        const newFile={id:"f"+Date.now(),driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink};
-        doc={...doc,files:[...(doc.files||[]),newFile]};
-        T("Uploaded to Drive ✓");
+        const newFiles=[];
+        for(let i=0;i<pendingFiles.length;i++){
+          setUploadProg(Math.round(i/pendingFiles.length*100));
+          const uploaded=await driveUploadFile(drive.token,pendingFiles[i],folder.id,()=>{});
+          newFiles.push({id:"f"+Date.now()+i,driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink});
+        }
+        doc={...doc,files:[...(doc.files||[]),...newFiles]};
+        setUploadProg(100);
+        T(newFiles.length>1?`${newFiles.length} files uploaded ✓`:"Uploaded to Drive ✓");
       }catch(e){
         T("Upload failed: "+e.message,"err");
         setUploading(false);return;
       }
       setUploading(false);
     }
-    // Clear legacy fields if files array populated
     if(doc.files?.length) doc={...doc,driveFileId:"",driveFileName:"",driveUrl:""};
     setDocs(prev=>f.id?prev.map(d=>d.id===f.id?doc:d):[...prev,{...doc,id:"d"+Date.now()}]);
     setMo(false);
-    if(!pendingFile) T("Saved ✓");
+    if(!pendingFiles.length) T("Saved ✓");
     reset();
   };
 
-  const onDrop=e=>{e.preventDefault();setDrag(false);const file=e.dataTransfer.files[0];if(file)setPendingFile(file);};
+  const onDrop=e=>{
+    e.preventDefault();setDrag(false);
+    const files=Array.from(e.dataTransfer.files);
+    if(files.length) setPendingFiles(prev=>[...prev,...files]);
+  };
 
   // Apply filters + sort
   let visible=docs;
@@ -1828,20 +1836,22 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
                   onClick={()=>!uploading&&fileRef.current?.click()}
                   style={{marginTop:(f.files||[]).length?4:0}}
                 >
-                  <input ref={fileRef} type="file" onChange={e=>{setPendingFile(e.target.files[0]||null);e.target.value="";}}/>
-                  {pendingFile
-                    ?<div style={{fontSize:12,color:"var(--g)"}}>{pendingFile.name} <span style={{color:"var(--t2)"}}>({(pendingFile.size/1024).toFixed(0)} KB)</span>
-                      <span style={{marginLeft:8,color:"var(--t2)",cursor:"pointer"}} onClick={e=>{e.stopPropagation();setPendingFile(null);}}>✕</span>
+                  <input ref={fileRef} type="file" multiple onChange={e=>{setPendingFiles(prev=>[...prev,...Array.from(e.target.files)]);e.target.value="";}}/>
+                  {pendingFiles.length>0
+                    ?<div style={{fontSize:12,color:"var(--g)"}}>
+                      {pendingFiles.length} file{pendingFiles.length>1?"s":""} selected
+                      <span style={{color:"var(--t2)",marginLeft:6}}>({(pendingFiles.reduce((s,f)=>s+f.size,0)/1024).toFixed(0)} KB total)</span>
+                      <span style={{marginLeft:8,color:"var(--t2)",cursor:"pointer"}} onClick={e=>{e.stopPropagation();setPendingFiles([]);}}>✕ clear</span>
                      </div>
                     :<div style={{fontSize:12,color:"var(--t2)"}}>
-                      {(f.files||[]).length?"+ Add another file — drop here or ":"Drop file here or "}
+                      {(f.files||[]).length?"+ Add more files — drop here or ":"Drop files here or "}
                       <span style={{color:"var(--g)"}}>click to browse</span>
                     </div>
                   }
                   {uploading&&<div className="upload-prog"><div className="upload-prog-fill" style={{width:`${uploadProg}%`}}/></div>}
                 </div>
-                {pendingFile&&!drive?.isAuthed&&(
-                  <div style={{fontSize:11,color:"var(--am)",marginTop:4}}>⚠️ Connect Google Drive (top of page) to upload this file</div>
+                {pendingFiles.length>0&&!drive?.isAuthed&&(
+                  <div style={{fontSize:11,color:"var(--am)",marginTop:4}}>⚠️ Connect Google Drive (top of page) to upload</div>
                 )}
               </>
             )}
@@ -1869,7 +1879,7 @@ function DocumentsTab({docs,setDocs,items,T,drive}){
           <div className="modal-footer">
             <button className="btn btn-s" onClick={()=>{setMo(false);reset();}}>Cancel</button>
             <button className="btn btn-g" onClick={save} disabled={uploading}>
-              {uploading?`Uploading ${uploadProg}%…`:"Save"}
+              {uploading?`Uploading ${uploadProg}%… (${pendingFiles.length} files)`:"Save"}
             </button>
           </div>
         </div>
