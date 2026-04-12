@@ -612,6 +612,10 @@ function totalCostILS(a, rates){
   // Otherwise convert cost1 to ILS (ignore cost2 — same transaction different currency)
   return conv(a.cost, a.cur, rates, "ILS");
 }
+function totalIncomeILS(a, rates){
+  if(!a.income||!+a.income) return 0;
+  return conv(a.income, a.incomeCur||"ILS", rates, "ILS");
+}
 function stCls(s){return s==="in progress"?"tprog":s==="done"?"tdone":s==="irrelevant"?"tirr":"tbd";}
 function prCls(p){return p==="High"?"tr":p==="Medium"?"tam":"t3";}
 function ownerInit(o){return(o||"?")[0];}
@@ -839,6 +843,8 @@ export default function App(){
   const [toast,setToast] = useState(null);
   const [modal,setModal] = useState(null);
   const [tick,setTick] = useState(getCountdown());
+  const drive = useGoogleDrive();
+  const isNative = !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
 
   useEffect(()=>{ const t=setInterval(()=>setTick(getCountdown()),1000); return()=>clearInterval(t); },[]);
 
@@ -948,7 +954,7 @@ export default function App(){
           {page==="plan"  && <PlanPage items={items} plans={plans} setPlans={setPlans} rates={rates} cur={cur} fmtC={fmtC} phdDone={phdDone} onEdit={a=>setModal({type:"item",a})} onNew={planId=>setModal({type:"item",a:null,planId})} onDelete={deleteItem} cycleStatus={cycleStatus} T={T}/>}
           {page==="finance" && <FinancePage items={items} plans={plans} rates={rates} onEdit={a=>setModal({type:"item",a})} setItems={setItems} T={T}/>}
           {page==="advisor" && <AdvisorPage items={items} plans={plans} rates={rates} onAddItem={a=>{setItems(prev=>[...prev,{...a,id:"a"+Date.now(),subs:[]}]);T("Item added to "+plans.find(p=>p.id===a.planId)?.title+" ✓");}}/>}
-          {page==="docs" && <DocsPage docs={docs} setDocs={setDocs} items={items} T={T}/>}
+          {page==="docs" && <DocsPage docs={docs} setDocs={setDocs} items={items} T={T} drive={drive} isNative={isNative}/>}
           {page==="vault" && <VaultPage items={items} shop={shop} setShop={setShop} rates={rates} cur={cur} fmtC={fmtC} shopTot={shopTot} T={T}/>}
           {page==="settings" && <SettingsPage rates={rates} setRates={setRates} fetchRates={fetchRates} items={items} setItems={setItems} plans={plans} setPlans={setPlans} syncStatus={syncStatus} syncErr={syncErr}/>}
 
@@ -987,7 +993,7 @@ export default function App(){
         </nav>
 
       {/* ACTION MODAL */}
-      {modal?.type==="item" && <ItemModal a={modal.a} defaultPlanId={modal.planId} plans={plans} onSave={a=>{if(saveItem(a))setModal(null);}} onClose={()=>setModal(null)}/>}
+      {modal?.type==="item" && <ItemModal a={modal.a} defaultPlanId={modal.planId} plans={plans} docs={docs} setDocs={setDocs} drive={isNative?null:drive} onSave={a=>{if(saveItem(a))setModal(null);}} onClose={()=>setModal(null)}/>}
       {toast && <div className={`toast ${toast.type}`}>{toast.type==="err"?"⚠️":toast.type==="inf"?"ℹ️":"✅"} {toast.msg}</div>}
     </>
   );
@@ -1399,16 +1405,14 @@ function JourneyTab({items,phdDone}){
 // ─────────────────────────────────────────────────────────────────────────────
 // VAULT PAGE
 // ─────────────────────────────────────────────────────────────────────────────
-function DocsPage({docs,setDocs,items,T}){
-  const drive = useGoogleDrive();
+function DocsPage({docs,setDocs,items,T,drive,isNative}){
   const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-  const isNative = !!(typeof window !== "undefined" && window.Capacitor?.isNativePlatform?.());
 
   // Auto-trigger Drive connect when page opens (requires user gesture on first visit,
   // but GIS will skip the popup silently on subsequent visits if already consented)
   const connectRef = useRef(false);
   useEffect(()=>{
-    if(!isNative && CLIENT_ID && !drive.isAuthed && !drive.authLoading && !connectRef.current){
+    if(!isNative && CLIENT_ID && drive && !drive.isAuthed && !drive.authLoading && !connectRef.current){
       connectRef.current = true;
       // Small delay so the page renders first — keeps it feeling responsive
       setTimeout(()=>drive.signIn().catch(()=>{ connectRef.current=false; }), 400);
@@ -2023,31 +2027,39 @@ function SettingsPage({rates,setRates,fetchRates,syncStatus,syncErr}){
 function FinancePage({items,plans,rates,onEdit,setItems,T}){
   const [tab,setTab] = useState("dashboard");
 
-  // All items with a cost
+  // Expenses — items with a cost
   const costItems = items.filter(a=>a.cost||a.cost2);
   const settled = costItems.filter(a=>a.settled&&a.settledDate);
   const pending = costItems.filter(a=>!a.settled);
 
-  // Totals in ILS
+  // Expense totals in ILS
   const totalEstILS = costItems.reduce((s,a)=>s+totalCostILS(a,rates),0);
   const totalSettledILS = settled.reduce((s,a)=>s+totalCostILS(a,rates),0);
   const totalPendingILS = pending.reduce((s,a)=>s+totalCostILS(a,rates),0);
 
-  // Upcoming = not settled, has ddate, within 60 days
+  // Income — items with an income field
+  const incomeItems = items.filter(a=>a.income&&+a.income>0);
+  const incomeReceived = incomeItems.filter(a=>a.incomeDate);
+  const incomePending = incomeItems.filter(a=>!a.incomeDate);
+  const totalIncomeReceivedILS = incomeReceived.reduce((s,a)=>s+totalIncomeILS(a,rates),0);
+  const totalIncomePendingILS = incomePending.reduce((s,a)=>s+totalIncomeILS(a,rates),0);
+  const totalIncomeEstILS = incomeItems.reduce((s,a)=>s+totalIncomeILS(a,rates),0);
+
+  // Upcoming expenses = not settled, has ddate, within 60 days
   const now = new Date();
   const in60 = new Date(now.getTime()+60*86400000);
   const upcoming = pending
     .filter(a=>a.ddate&&new Date(a.ddate)<=in60)
     .sort((a,b)=>new Date(a.ddate)-new Date(b.ddate));
 
-  // By plan breakdown
+  // By plan breakdown (expenses)
   const byPlan = plans.map(p=>{
     const pi = settled.filter(a=>a.planId===p.id);
     return {plan:p, ils:pi.reduce((s,a)=>s+totalCostILS(a,rates),0), count:pi.length};
   }).filter(x=>x.ils>0).sort((a,b)=>b.ils-a.ils);
   const maxPlanILS = byPlan[0]?.ils||1;
 
-  // Monthly timeline — settled by settledDate
+  // Monthly timeline — settled expenses by settledDate
   const months = {};
   settled.forEach(a=>{
     const d = new Date(a.settledDate);
@@ -2067,9 +2079,9 @@ function FinancePage({items,plans,rates,onEdit,setItems,T}){
     <>
       <div className="page-header">
         <div className="page-title">Finance 💰</div>
-        <div className="page-sub">All amounts in ILS · {settled.length} settled · {pending.length} pending</div>
+        <div className="page-sub">All amounts in ILS · {settled.length} expenses settled · {incomeReceived.length} income received</div>
         <div className="tabs">
-          {[["dashboard","Dashboard"],["settled","Settled"],["upcoming","Upcoming"]].map(([id,lbl])=>(
+          {[["dashboard","Dashboard"],["settled","Expenses"],["income","Income"],["upcoming","Upcoming"]].map(([id,lbl])=>(
             <button key={id} className={`tab ${tab===id?"on":""}`} onClick={()=>setTab(id)}>{lbl}</button>
           ))}
         </div>
@@ -2077,7 +2089,8 @@ function FinancePage({items,plans,rates,onEdit,setItems,T}){
       <div className="page-body">
 
         {tab==="dashboard" && <>
-          {/* KPI Row */}
+          {/* Expenses KPI Row */}
+          <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t2)",marginBottom:6,fontWeight:700}}>💸 Expenses</div>
           <div className="fin-kpi-row">
             <div className="fin-kpi">
               <div className="fin-kpi-label">Total Estimated</div>
@@ -2095,6 +2108,28 @@ function FinancePage({items,plans,rates,onEdit,setItems,T}){
               <div className="fin-kpi-sub">{pending.length} items outstanding</div>
             </div>
           </div>
+
+          {/* Income KPI Row */}
+          {incomeItems.length>0&&<>
+            <div style={{fontSize:10,textTransform:"uppercase",letterSpacing:"1.5px",color:"var(--t2)",margin:"14px 0 6px",fontWeight:700}}>💵 Income</div>
+            <div className="fin-kpi-row">
+              <div className="fin-kpi">
+                <div className="fin-kpi-label">Total Expected</div>
+                <div className="fin-kpi-val vg">{ils(totalIncomeEstILS)}</div>
+                <div className="fin-kpi-sub">{incomeItems.length} items with income</div>
+              </div>
+              <div className="fin-kpi">
+                <div className="fin-kpi-label">Received</div>
+                <div className="fin-kpi-val" style={{color:"var(--g)"}}>{ils(totalIncomeReceivedILS)}</div>
+                <div className="fin-kpi-sub">{incomeReceived.length} items received</div>
+              </div>
+              <div className="fin-kpi">
+                <div className="fin-kpi-label">Still Expected</div>
+                <div className="fin-kpi-val vam">{ils(totalIncomePendingILS)}</div>
+                <div className="fin-kpi-sub">{incomePending.length} items pending</div>
+              </div>
+            </div>
+          </>}
 
           {/* Progress bar */}
           <div className="card" style={{marginBottom:12}}>
@@ -2207,6 +2242,37 @@ function FinancePage({items,plans,rates,onEdit,setItems,T}){
               );
             })}
           </div>
+        </>}
+
+        {tab==="income" && <>
+          <div style={{marginBottom:12,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+            <div style={{fontSize:12,color:"var(--t1)"}}>{incomeItems.length} items · {ils(totalIncomeReceivedILS)} received · {ils(totalIncomePendingILS)} expected</div>
+          </div>
+          {incomeItems.length===0 && <div style={{color:"var(--t2)",textAlign:"center",padding:"32px 0"}}>No income items yet — open any item and toggle "Income from this item"</div>}
+          {incomeItems.length>0&&(
+            <div className="card" style={{padding:0,overflow:"hidden"}}>
+              {[...incomeReceived,...incomePending].map(a=>{
+                const plan = plans.find(p=>p.id===a.planId);
+                const received = !!a.incomeDate;
+                return(
+                  <div key={a.id} className="settled-row" style={{padding:"10px 14px"}}>
+                    <div style={{flex:1}}>
+                      <div style={{fontWeight:600,fontSize:13}}>{a.title}</div>
+                      <div style={{display:"flex",gap:8,marginTop:3,flexWrap:"wrap",alignItems:"center"}}>
+                        {plan&&<span style={{fontSize:9,color:plan.color,fontWeight:700,textTransform:"uppercase"}}>{plan.icon} {plan.title}</span>}
+                        {received?<span style={{fontSize:11,color:"var(--g)"}}>✓ Received {a.incomeDate}</span>:<span style={{fontSize:11,color:"var(--am)"}}>⏳ Not yet received</span>}
+                      </div>
+                    </div>
+                    <div style={{textAlign:"right"}}>
+                      <div style={{fontFamily:"var(--fd)",fontWeight:800,fontSize:14,color:"var(--g)"}}>{ils(totalIncomeILS(a,rates))}</div>
+                      <div style={{fontSize:10,color:"var(--t2)"}}>{a.incomeCur||"ILS"} {a.income}</div>
+                      <button className="btn btn-s btn-xs" style={{marginTop:4}} onClick={()=>onEdit(a)}>Edit</button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>}
 
         {tab==="upcoming" && <>
@@ -2472,11 +2538,15 @@ function FlightPanel(){
 // ─────────────────────────────────────────────────────────────────────────────
 // ITEM MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
-  const blank={id:"",planId:defaultPlanId||plans[0]?.id||"p1",title:"",desc:"",owner:"Raz",priority:"High",status:"tbd",phase:"Month -3",ddate:"",cost:"",cur:"ILS",cost2:"",cur2:"AUD",vendor:"",comments:"",subs:[]};
+function ItemModal({a,defaultPlanId,plans,docs,setDocs,drive,onSave,onClose}){
+  const blank={id:"",planId:defaultPlanId||plans[0]?.id||"p1",title:"",desc:"",owner:"Raz",priority:"High",status:"tbd",phase:"Month -3",ddate:"",cost:"",cur:"ILS",cost2:"",cur2:"AUD",vendor:"",comments:"",subs:[],income:"",incomeCur:"ILS",incomeDate:""};
   const [f,setF] = useState(a||blank);
   const [adv,setAdv] = useState(!!a?.id);
   const [ns,setNs] = useState("");
+  const [showIncome,setShowIncome] = useState(!!(a?.income&&+a.income>0));
+  const [pendingDocFiles,setPendingDocFiles] = useState([]);
+  const [docUploading,setDocUploading] = useState(false);
+  const docFileRef = useRef();
   const sf=(k,v)=>setF(p=>({...p,[k]:v}));
 
   useEffect(()=>{
@@ -2484,6 +2554,43 @@ function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
   },[f.subs]);
 
   const isFlight=f.id==="a9"||f.title.toLowerCase().includes("flight");
+
+  const handleDocFiles = e => {
+    const files = Array.from(e.target.files||[]);
+    setPendingDocFiles(prev=>[...prev,...files]);
+    e.target.value="";
+  };
+
+  const removeDocFile = idx => setPendingDocFiles(prev=>prev.filter((_,i)=>i!==idx));
+
+  const handleSave = async () => {
+    if(f.settled&&!f.settledDate){alert("Please enter a settlement date");return;}
+    const itemId = f.id || ("a"+Date.now());
+    const savedItem = {...f, id:itemId};
+    if(!showIncome){savedItem.income="";savedItem.incomeCur="ILS";savedItem.incomeDate="";}
+
+    if(pendingDocFiles.length>0 && setDocs){
+      setDocUploading(true);
+      for(let i=0;i<pendingDocFiles.length;i++){
+        const file = pendingDocFiles[i];
+        const docId = "d"+Date.now()+i;
+        let files=[];
+        if(drive?.isAuthed){
+          try{
+            const folder = await driveEnsureFolder(drive.token,"General",DRIVE_ROOT);
+            const uploaded = await driveUploadFile(drive.token,file,folder.id,()=>{});
+            files=[{id:"f"+Date.now()+i,driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink}];
+          }catch(e){/* skip drive, doc still created */}
+        }
+        setDocs(prev=>[...prev,{id:docId,type:file.name.replace(/\.[^.]+$/,""),category:"General",status:"collected",exp:"",aid:itemId,files,notes:""}]);
+      }
+      setDocUploading(false);
+    }
+    onSave(savedItem);
+  };
+
+  // Linked docs (existing)
+  const linkedDocs = (docs||[]).filter(d=>d.aid===f.id&&f.id);
 
   return(
     <div className="overlay" onClick={e=>e.target===e.currentTarget&&onClose()}>
@@ -2534,6 +2641,32 @@ function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
               <input type="date" className="finput" value={f.settledDate||""} onChange={e=>sf("settledDate",e.target.value)} style={{borderColor:f.settled&&!f.settledDate?"var(--re)":""}}/>
             </div>
           </>}
+        </div>
+
+        {/* INCOME SECTION */}
+        <div style={{borderTop:"1px solid var(--bd)",marginTop:4,paddingTop:10}}>
+          <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",paddingBottom:showIncome?10:0}} onClick={()=>setShowIncome(v=>!v)}>
+            <span style={{fontSize:13}}>{showIncome?"▾":"▸"}</span>
+            <span style={{fontSize:12,fontWeight:600,color:showIncome?"var(--g)":"var(--t1)"}}>💵 Income from this item</span>
+            {f.income&&+f.income>0&&!showIncome&&<span style={{fontSize:11,color:"var(--g)",marginLeft:"auto"}}>{f.incomeCur||"ILS"} {f.income}</span>}
+          </div>
+          {showIncome&&(
+            <div className="fg">
+              <div className="fcol span2">
+                <div className="flabel">Income Amount</div>
+                <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6}}>
+                  <input type="number" className="finput" value={f.income||""} onChange={e=>sf("income",e.target.value)} placeholder="0" autoFocus={false}/>
+                  <select className="fselect" value={f.incomeCur||"ILS"} onChange={e=>sf("incomeCur",e.target.value)} style={{width:72}}>
+                    {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="fcol span2">
+                <div className="flabel">Date Received</div>
+                <input type="date" className="finput" value={f.incomeDate||""} onChange={e=>sf("incomeDate",e.target.value)}/>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* ADVANCED EXPAND */}
@@ -2591,15 +2724,47 @@ function ItemModal({a,defaultPlanId,plans,onSave,onClose}){
               <input className="finput" style={{flex:1}} placeholder="Add subtask…" value={ns} onChange={e=>setNs(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&ns.trim()){sf("subs",[...(f.subs||[]),{id:"s"+Date.now(),t:ns,done:false}]);setNs("");}}}/>
               <button className="btn btn-s btn-sm" onClick={()=>{if(ns.trim()){sf("subs",[...(f.subs||[]),{id:"s"+Date.now(),t:ns,done:false}]);setNs("");}}}>+ Add</button>
             </div>
+
+            {/* DOCUMENTS */}
+            <div className="modal-section">Documents</div>
+            {linkedDocs.length>0&&(
+              <div style={{marginBottom:8}}>
+                {linkedDocs.map(d=>(
+                  <div key={d.id} style={{display:"flex",alignItems:"center",gap:8,padding:"5px 0",borderBottom:"1px solid var(--bd)"}}>
+                    <span style={{fontSize:12,flex:1,color:"var(--t0)"}}>{d.type||"Document"}</span>
+                    <span className={`tag ${DOC_STATUS_CLS[d.status||"pending"]}`}>{DOC_STATUS_LABEL[d.status||"pending"]}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
+              <input type="file" ref={docFileRef} style={{display:"none"}} multiple onChange={handleDocFiles}/>
+              <button className="btn btn-s btn-sm" onClick={()=>docFileRef.current?.click()}>📎 Attach file</button>
+              {pendingDocFiles.length>0&&<span style={{fontSize:11,color:"var(--t2)"}}>{pendingDocFiles.length} file{pendingDocFiles.length>1?"s":""} queued</span>}
+            </div>
+            {pendingDocFiles.length>0&&(
+              <div style={{marginTop:8}}>
+                {pendingDocFiles.map((file,i)=>(
+                  <div key={i} style={{display:"flex",alignItems:"center",gap:8,padding:"4px 0",fontSize:12}}>
+                    <span style={{flex:1,color:"var(--t1)",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>📄 {file.name}</span>
+                    <button style={{background:"none",border:"none",color:"var(--t2)",cursor:"pointer",fontSize:12,padding:"0 4px"}} onClick={()=>removeDocFile(i)}>✕</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {pendingDocFiles.length>0&&(
+              <div style={{fontSize:11,color:"var(--t2)",marginTop:4}}>
+                {drive?.isAuthed?"Will upload to Google Drive on save.":"Files will be linked to this item. Connect Drive in the Docs tab to upload."}
+              </div>
+            )}
           </>
         )}
 
         <div className="modal-footer">
           <button className="btn btn-s" onClick={onClose}>Cancel</button>
-          <button className="btn btn-g" onClick={()=>{
-            if(f.settled&&!f.settledDate){alert("Please enter a settlement date");return;}
-            onSave(f);
-          }}>Save Item</button>
+          <button className="btn btn-g" onClick={handleSave} disabled={docUploading}>
+            {docUploading?"Uploading…":"Save Item"}
+          </button>
         </div>
       </div>
     </div>
