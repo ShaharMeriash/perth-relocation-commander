@@ -2543,7 +2543,9 @@ function ItemModal({a,defaultPlanId,plans,docs,setDocs,drive,onSave,onClose}){
   const [f,setF] = useState(a||blank);
   const [adv,setAdv] = useState(!!a?.id);
   const [ns,setNs] = useState("");
-  const [showIncome,setShowIncome] = useState(!!(a?.income&&+a.income>0));
+  // finType: "expense" | "income" | "" (no financial value)
+  const initFinType = () => { if(a?.income&&+a.income>0) return "income"; if(a?.cost||a?.cost2) return "expense"; return ""; };
+  const [finType,setFinType] = useState(initFinType);
   const [pendingDocFiles,setPendingDocFiles] = useState([]);
   const [docUploading,setDocUploading] = useState(false);
   const docFileRef = useRef();
@@ -2553,7 +2555,13 @@ function ItemModal({a,defaultPlanId,plans,docs,setDocs,drive,onSave,onClose}){
     if(f.subs?.some(s=>s.done)&&f.status==="tbd") sf("status","in progress");
   },[f.subs]);
 
-  const isFlight=f.id==="a9"||f.title.toLowerCase().includes("flight");
+  const switchFinType = type => {
+    setFinType(type);
+    // clear the fields that belong to the other type
+    if(type==="income") setF(p=>({...p,cost:"",cur:"ILS",cost2:"",cur2:"AUD",settled:false,settledDate:""}));
+    if(type==="expense") setF(p=>({...p,income:"",incomeCur:"ILS",incomeDate:""}));
+    if(type==="") setF(p=>({...p,cost:"",cur:"ILS",cost2:"",cur2:"AUD",settled:false,settledDate:"",income:"",incomeCur:"ILS",incomeDate:""}));
+  };
 
   const handleDocFiles = e => {
     const files = Array.from(e.target.files||[]);
@@ -2564,32 +2572,29 @@ function ItemModal({a,defaultPlanId,plans,docs,setDocs,drive,onSave,onClose}){
   const removeDocFile = idx => setPendingDocFiles(prev=>prev.filter((_,i)=>i!==idx));
 
   const handleSave = async () => {
-    if(f.settled&&!f.settledDate){alert("Please enter a settlement date");return;}
+    if(finType==="expense"&&f.settled&&!f.settledDate){alert("Please enter a settlement date");return;}
     const itemId = f.id || ("a"+Date.now());
     const savedItem = {...f, id:itemId};
-    if(!showIncome){savedItem.income="";savedItem.incomeCur="ILS";savedItem.incomeDate="";}
 
     if(pendingDocFiles.length>0 && setDocs){
       setDocUploading(true);
       for(let i=0;i<pendingDocFiles.length;i++){
         const file = pendingDocFiles[i];
-        const docId = "d"+Date.now()+i;
         let files=[];
         if(drive?.isAuthed){
           try{
             const folder = await driveEnsureFolder(drive.token,"General",DRIVE_ROOT);
             const uploaded = await driveUploadFile(drive.token,file,folder.id,()=>{});
             files=[{id:"f"+Date.now()+i,driveFileId:uploaded.id,driveFileName:uploaded.name,driveUrl:uploaded.webViewLink}];
-          }catch(e){/* skip drive, doc still created */}
+          }catch(e){/* drive failed, doc still created without file */}
         }
-        setDocs(prev=>[...prev,{id:docId,type:file.name.replace(/\.[^.]+$/,""),category:"General",status:"collected",exp:"",aid:itemId,files,notes:""}]);
+        setDocs(prev=>[...prev,{id:"d"+Date.now()+i,type:file.name.replace(/\.[^.]+$/,""),category:"General",status:"collected",exp:"",aid:itemId,files,notes:""}]);
       }
       setDocUploading(false);
     }
     onSave(savedItem);
   };
 
-  // Linked docs (existing)
   const linkedDocs = (docs||[]).filter(d=>d.aid===f.id&&f.id);
 
   return(
@@ -2631,42 +2636,6 @@ function ItemModal({a,defaultPlanId,plans,docs,setDocs,drive,onSave,onClose}){
               {["tbd","in progress","irrelevant","done"].map(s=><option key={s}>{s}</option>)}
             </select>
           </div>
-          {(f.cost||f.cost2) && <>
-            <div className="fcol" style={{display:"flex",alignItems:"center",gap:10,paddingTop:6}}>
-              <input type="checkbox" id="settled-cb" style={{width:16,height:16,accentColor:"var(--g)",cursor:"pointer"}} checked={!!f.settled} onChange={e=>sf("settled",e.target.checked)}/>
-              <label htmlFor="settled-cb" style={{fontSize:12,fontWeight:600,color:f.settled?"var(--g)":"var(--t1)",cursor:"pointer"}}>✅ Settled (paid)</label>
-            </div>
-            <div className="fcol">
-              <div className="flabel">Settlement Date {f.settled&&<span style={{color:"var(--re)"}}>*</span>}</div>
-              <input type="date" className="finput" value={f.settledDate||""} onChange={e=>sf("settledDate",e.target.value)} style={{borderColor:f.settled&&!f.settledDate?"var(--re)":""}}/>
-            </div>
-          </>}
-        </div>
-
-        {/* INCOME SECTION */}
-        <div style={{borderTop:"1px solid var(--bd)",marginTop:4,paddingTop:10}}>
-          <div style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",paddingBottom:showIncome?10:0}} onClick={()=>setShowIncome(v=>!v)}>
-            <span style={{fontSize:13}}>{showIncome?"▾":"▸"}</span>
-            <span style={{fontSize:12,fontWeight:600,color:showIncome?"var(--g)":"var(--t1)"}}>💵 Income from this item</span>
-            {f.income&&+f.income>0&&!showIncome&&<span style={{fontSize:11,color:"var(--g)",marginLeft:"auto"}}>{f.incomeCur||"ILS"} {f.income}</span>}
-          </div>
-          {showIncome&&(
-            <div className="fg">
-              <div className="fcol span2">
-                <div className="flabel">Income Amount</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr auto",gap:6}}>
-                  <input type="number" className="finput" value={f.income||""} onChange={e=>sf("income",e.target.value)} placeholder="0" autoFocus={false}/>
-                  <select className="fselect" value={f.incomeCur||"ILS"} onChange={e=>sf("incomeCur",e.target.value)} style={{width:72}}>
-                    {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
-                  </select>
-                </div>
-              </div>
-              <div className="fcol span2">
-                <div className="flabel">Date Received</div>
-                <input type="date" className="finput" value={f.incomeDate||""} onChange={e=>sf("incomeDate",e.target.value)}/>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* ADVANCED EXPAND */}
@@ -2685,22 +2654,56 @@ function ItemModal({a,defaultPlanId,plans,docs,setDocs,drive,onSave,onClose}){
                 </select>
               </div>
               <div className="fcol">
-                <div className="flabel">Vendor</div>
+                <div className="flabel">Vendor / Party</div>
                 <input className="finput" value={f.vendor} onChange={e=>sf("vendor",e.target.value)}/>
               </div>
+
+              {/* FINANCIAL VALUE — single section, toggled type */}
               <div className="fcol span2">
-                <div className="flabel">Cost — same amount, two currencies (ILS used for totals)</div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto",gap:6,alignItems:"center"}}>
-                  <input type="number" className="finput" value={f.cost} onChange={e=>sf("cost",e.target.value)} placeholder="0"/>
-                  <select className="fselect" value={f.cur} onChange={e=>sf("cur",e.target.value)} style={{width:72}}>
-                    {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
-                  </select>
-                  <input type="number" className="finput" value={f.cost2||""} onChange={e=>sf("cost2",e.target.value)} placeholder="0 (optional)"/>
-                  <select className="fselect" value={f.cur2||"AUD"} onChange={e=>sf("cur2",e.target.value)} style={{width:72}}>
-                    {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
-                  </select>
+                <div className="flabel">Financial value</div>
+                <div style={{display:"flex",gap:6,marginBottom:8}}>
+                  {[["","None"],["expense","💸 Expense"],["income","💵 Income"]].map(([v,lbl])=>(
+                    <button key={v} type="button"
+                      className={"btn btn-sm "+(finType===v?"btn-g":"btn-s")}
+                      style={{flex:1,fontSize:11}}
+                      onClick={()=>switchFinType(v)}
+                    >{lbl}</button>
+                  ))}
                 </div>
+
+                {finType==="expense"&&(
+                  <>
+                    <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr auto",gap:6,alignItems:"center"}}>
+                      <input type="number" className="finput" value={f.cost} onChange={e=>sf("cost",e.target.value)} placeholder="Amount"/>
+                      <select className="fselect" value={f.cur} onChange={e=>sf("cur",e.target.value)} style={{width:72}}>
+                        {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
+                      </select>
+                      <input type="number" className="finput" value={f.cost2||""} onChange={e=>sf("cost2",e.target.value)} placeholder="Alt amount (optional)"/>
+                      <select className="fselect" value={f.cur2||"AUD"} onChange={e=>sf("cur2",e.target.value)} style={{width:72}}>
+                        {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                    <div style={{display:"flex",gap:10,marginTop:8,alignItems:"center"}}>
+                      <input type="checkbox" id="settled-cb" style={{width:16,height:16,accentColor:"var(--g)",cursor:"pointer"}} checked={!!f.settled} onChange={e=>sf("settled",e.target.checked)}/>
+                      <label htmlFor="settled-cb" style={{fontSize:12,fontWeight:600,color:f.settled?"var(--g)":"var(--t1)",cursor:"pointer"}}>✅ Settled (paid)</label>
+                      {f.settled&&(
+                        <input type="date" className="finput" value={f.settledDate||""} onChange={e=>sf("settledDate",e.target.value)} style={{flex:1,borderColor:!f.settledDate?"var(--re)":""}}/>
+                      )}
+                    </div>
+                  </>
+                )}
+
+                {finType==="income"&&(
+                  <div style={{display:"grid",gridTemplateColumns:"1fr auto 1fr",gap:6,alignItems:"center"}}>
+                    <input type="number" className="finput" value={f.income||""} onChange={e=>sf("income",e.target.value)} placeholder="Amount received"/>
+                    <select className="fselect" value={f.incomeCur||"ILS"} onChange={e=>sf("incomeCur",e.target.value)} style={{width:72}}>
+                      {["ILS","AUD","USD"].map(c=><option key={c}>{c}</option>)}
+                    </select>
+                    <input type="date" className="finput" value={f.incomeDate||""} onChange={e=>sf("incomeDate",e.target.value)} title="Date received (optional)"/>
+                  </div>
+                )}
               </div>
+
               <div className="fcol span2">
                 <div className="flabel">Description</div>
                 <textarea className="ftextarea" value={f.desc} onChange={e=>sf("desc",e.target.value)} rows={2}/>
@@ -2750,11 +2753,9 @@ function ItemModal({a,defaultPlanId,plans,docs,setDocs,drive,onSave,onClose}){
                     <button style={{background:"none",border:"none",color:"var(--t2)",cursor:"pointer",fontSize:12,padding:"0 4px"}} onClick={()=>removeDocFile(i)}>✕</button>
                   </div>
                 ))}
-              </div>
-            )}
-            {pendingDocFiles.length>0&&(
-              <div style={{fontSize:11,color:"var(--t2)",marginTop:4}}>
-                {drive?.isAuthed?"Will upload to Google Drive on save.":"Files will be linked to this item. Connect Drive in the Docs tab to upload."}
+                <div style={{fontSize:11,color:"var(--t2)",marginTop:4}}>
+                  {drive?.isAuthed?"Will upload to Google Drive on save.":"Files linked to this item · upload to Drive from the Docs tab."}
+                </div>
               </div>
             )}
           </>
